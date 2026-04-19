@@ -1,6 +1,7 @@
 """LoopEngine — state machine: PLANNING → CODING → VERIFICATION → DONE/FAILED."""
 
 from __future__ import annotations
+import re
 import time
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from CLI_agent_memory.domain.protocols import (
 )
 from CLI_agent_memory.domain.stagnation import StagnationMonitor
 from CLI_agent_memory.domain.state import TaskContext
-from CLI_agent_memory.domain.types import AgentState, Message, TaskResult
+from CLI_agent_memory.domain.types import AgentState, Message, TaskResult, ContextPack
 from CLI_agent_memory.prompts.templates import (
     coding_prompt, intervention_prompt, planning_prompt, verification_prompt,
 )
@@ -66,16 +67,29 @@ class LoopEngine:
         ctx.transition(AgentState.CODING)
 
     async def _code(self, ctx: TaskContext, history: list[Message]) -> None:
-        context = await self.memory.recall(ctx.task_description + "\n" + ctx.plan)
+        # Throttle RAG to avoid latency murder (only recall on first iteration of coding phase)
+        if ctx.iteration == 2 or ctx.iteration % 5 == 0:
+            context = await self.memory.recall(ctx.task_description + "\n" + ctx.plan)
+        else:
+            context = ContextPack()
+        
         files = self.workspace.list_files(ctx.worktree_path)
         prompt = coding_prompt(ctx.plan, context, files)
         history.append(Message(role="user", content=prompt))
         resp = await self.llm.generate(prompt, history, temperature=0.1)
         history.append(Message(role="assistant", content=resp.text))
-        stag = self.stagnation.record_turn(files_edited=resp.files_edited)
+        
+        # ── Parse and write files (Fake Programmer Fix) ──
+        file_blocks = re.findall(r"\*\*File:\s*(.*?)\*\*\s*```.*?\n(.*?)```", resp.text, re.DOTALL)
+        files_edited = 0
+        for file_path, content in file_blocks:
+            self.workspace.write_file(ctx.worktree_path, file_path.strip(), content.strip() + "\n")
+            files_edited += 1
+
+        stag = self.stagnation.record_turn(files_edited=files_edited)
         if stag.is_stagnant:
             history.append(Message(role="user", content=intervention_prompt(stag.reason)))
-            history[:] = history[-2:]
+            history[:] = [history[0]] + history[-2:]  # Fix amnesia: preserve system prompt
             self.stagnation.reset()
         if "DONE CODING" in resp.text.upper():
             ctx.transition(AgentState.VERIFICATION)

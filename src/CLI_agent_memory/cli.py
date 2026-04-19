@@ -34,10 +34,7 @@ def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
     from pathlib import Path
     from CLI_agent_memory.infra.llm import create_llm_client
     from CLI_agent_memory.infra.workspace.git_worktree import GitWorktreeProvider
-    from CLI_agent_memory.infra.adapters.mcp.memory_http import MCPMemoryAdapter
-    from CLI_agent_memory.infra.adapters.null.memory_null import NullMemoryAdapter
-    from CLI_agent_memory.infra.adapters.null.thinking_null import NullThinkingAdapter
-    from CLI_agent_memory.infra.adapters.null.vault_null import NullVaultAdapter
+    from CLI_agent_memory.infra.adapters.protocol_factory import ProtocolFactory
     from CLI_agent_memory.domain.loop import LoopEngine
     from CLI_agent_memory.config import LoopConfig
 
@@ -46,18 +43,24 @@ def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
         print(f"Error: {repo} is not a git repo", file=sys.stderr)
         return 1
 
+    # Update config from args
+    if args.memory:
+        config.memory_url = args.memory
+
     llm = create_llm_client(args.llm, config)
-    memory = MCPMemoryAdapter(args.memory) if args.memory else NullMemoryAdapter()
-    thinking = NullThinkingAdapter()
+    factory = ProtocolFactory(config)
+
+    memory = factory.create_memory()
+    thinking = factory.create_thinking()
+    vault = factory.create_vault()
     workspace = GitWorktreeProvider(repo)
-    vault = NullVaultAdapter()
 
     if not llm.is_available():
         print(f"Error: LLM '{args.llm}' not available", file=sys.stderr)
         return 20
 
     if args.dry_run:
-        print(f"[DRY RUN] {args.description}\n  Repo: {repo}\n  LLM: {args.llm}\n  Mem: {args.memory}")
+        print(f"[DRY RUN] {args.description}\n  Repo: {repo}\n  LLM: {args.llm}\n  Mem: {config.memory_url}")
         return EXIT_OK
 
     loop_cfg = LoopConfig(max_iterations=args.max_iter, max_stagnation=config.max_stagnation,

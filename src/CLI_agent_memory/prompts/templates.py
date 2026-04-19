@@ -34,13 +34,17 @@ def coding_prompt(plan: str, context: ContextPack, files: list[str] | None = Non
         "## Plan\n" + plan,
     ]
     if files:
-        parts.append("## Relevant files\n" + "\n".join(f"- {f}" for f in files))
+        parts.append("## Relevant files\n" + "\n".join(f"- {f}" for f in files[:50])) # Limit to 50 files
     if context.context_text:
-        parts.append("## Context\n" + context.context_text)
+        parts.append("## Context\n" + context.context_text[:2000]) # Throttle context bloat
     parts.append(
         "## Instructions\n"
-        "Implement the next step from the plan. "
-        "Make minimal changes. "
+        "Implement the next step from the plan. Make minimal changes.\n"
+        "To edit a file, you MUST use the following exact format:\n\n"
+        "**File: path/to/file.ext**\n"
+        "```\n"
+        "full file content here\n"
+        "```\n\n"
         "When all steps are done, say 'DONE CODING'."
     )
     return "\n\n".join(parts)

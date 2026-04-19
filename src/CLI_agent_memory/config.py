@@ -15,7 +15,7 @@ class AgentMemoryConfig(BaseSettings):
     llm_timeout: int = 120
 
     # Memory
-    memory_url: str = "http://127.0.0.1:3050"
+    memory_url: str = "http://127.0.0.1:3050/mcp"
     memory_enabled: bool = True
     force_local: bool = False
 

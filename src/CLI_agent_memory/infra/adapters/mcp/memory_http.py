@@ -11,8 +11,10 @@ from CLI_agent_memory.domain.types import ContextPack, Memory
 class MCPMemoryAdapter(MemoryProtocol):
     """Talks to MCP-agent-memory gateway via HTTP JSON-RPC."""
 
-    def __init__(self, base_url: str = "http://127.0.0.1:3050"):
+    def __init__(self, base_url: str = "http://127.0.0.1:3050/mcp"):
         self.base_url = base_url.rstrip("/")
+        if self.base_url.startswith("http") and not self.base_url.endswith("/mcp"):
+             self.base_url += "/mcp"
         self._client = httpx.AsyncClient(timeout=30.0)
 
     async def _call(self, method: str, params: dict) -> dict | None:
