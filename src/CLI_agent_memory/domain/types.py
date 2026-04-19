@@ -97,17 +97,5 @@ class TaskResult(BaseModel):
     duration_seconds: float = 0.0
 
 
-class HealthStatus(BaseModel):
-    status: str
-    service: str
-    uptime_seconds: float
-    connections: dict[str, str] = Field(default_factory=dict)
 
 
-class ServiceMetrics(BaseModel):
-    tasks_completed: int = 0
-    tasks_failed: int = 0
-    tasks_in_progress: int = 0
-    total_tool_calls: int = 0
-    total_errors: int = 0
-    uptime_seconds: float = 0.0

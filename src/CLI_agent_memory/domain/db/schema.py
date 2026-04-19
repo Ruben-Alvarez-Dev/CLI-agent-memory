@@ -98,18 +98,6 @@ CREATE TABLE IF NOT EXISTS audit_events (
     content TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE TABLE IF NOT EXISTS agent_metrics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    agent TEXT,
-    task_type TEXT,
-    success BOOLEAN,
-    iterations INTEGER,
-    duration_seconds REAL,
-    tokens_in INTEGER,
-    tokens_out INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 """
 
 

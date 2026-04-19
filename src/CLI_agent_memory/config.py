@@ -35,5 +35,16 @@ class AgentMemoryConfig(BaseSettings):
 
     model_config = ConfigDict(
         env_prefix="AGENT_MEMORY_",
-        toml_file="agent-memory.toml",
     )
+
+
+class LoopConfig:
+    def __init__(
+        self,
+        max_iterations: int = 50,
+        max_stagnation: int = 3,
+        test_command: str = "",
+    ):
+        self.max_iterations = max_iterations
+        self.max_stagnation = max_stagnation
+        self.test_command = test_command

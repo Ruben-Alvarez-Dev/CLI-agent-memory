@@ -1,5 +1,7 @@
 """Tests for domain/types.py — SPEC-D1."""
 
+from enum import Enum
+
 from CLI_agent_memory.domain.types import (
     AgentState,
     CommandResult,
@@ -25,7 +27,7 @@ def test_all_types_are_pydantic_or_enum():
         Plan, VaultEntry, TaskResult,
     ]
     for t in enum_types:
-        assert issubclass(t, type(AgentState))
+        assert issubclass(t, Enum)
     for t in pydantic_types:
         assert hasattr(t, "model_validate"), f"{t.__name__} is not a Pydantic model"
 

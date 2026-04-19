@@ -26,7 +26,7 @@ def test_init_db_creates_all_tables():
         tables = {row[0] for row in cursor.fetchall()}
         expected = {
             "memories", "decisions", "thinking_sessions", "thinking_steps",
-            "plans", "conversations", "tasks", "audit_events", "agent_metrics",
+            "plans", "conversations", "tasks", "audit_events",
         }
         assert expected.issubset(tables)
         conn.close()
