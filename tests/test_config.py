@@ -9,7 +9,7 @@ def test_default_values():
     """Config has correct defaults."""
     cfg = AgentMemoryConfig()
     assert cfg.llm_backend == "lmstudio"
-    assert cfg.memory_url == "http://127.0.0.1:3050"
+    assert cfg.memory_url == "http://127.0.0.1:3050/mcp"
     assert cfg.max_iterations == 50
     assert cfg.force_local is False
 
