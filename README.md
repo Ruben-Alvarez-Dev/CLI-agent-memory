@@ -6,6 +6,14 @@ Autonomous coding agent with hexagonal architecture. Connects to [MCP-agent-memo
 
 ### Installation
 
+#### One-liner
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ruben-Alvarez-Dev/CLI-agent-memory/main/install.sh | bash
+```
+
+#### Manual
+
 ```bash
 git clone https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory.git
 cd CLI-agent-memory
