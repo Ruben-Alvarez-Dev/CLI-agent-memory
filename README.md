@@ -6,21 +6,39 @@ Autonomous coding agent with hexagonal architecture. Connects to [MCP-agent-memo
 
 ### Installation
 
-#### One-liner
-
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Ruben-Alvarez-Dev/CLI-agent-memory/main/install.sh | bash
+pip install git+https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory.git
 ```
 
-#### Manual
+Or from a local clone:
 
 ```bash
 git clone https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory.git
 cd CLI-agent-memory
-python3 -m venv .venv
-source .venv/bin/activate
 pip install -e .
 ```
+
+### Verification
+
+After installation, run the verification script to check everything works:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ruben-Alvarez-Dev/CLI-agent-memory/main/verify.sh | bash
+```
+
+Or from inside the repo:
+
+```bash
+bash verify.sh
+```
+
+The verification performs 6 checks:
+- Package installation and CLI entry point
+- Python dependencies (pydantic, httpx, mcp)
+- Architecture integrity (14 modules checked)
+- Unit tests (30 tests)
+- MCP-agent-memory subprocess connectivity
+- Integration smoke test (store→list, vault write→read)
 
 ### Usage
 
