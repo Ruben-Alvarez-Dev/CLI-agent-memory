@@ -22,8 +22,8 @@ def _discover_mcp_server_dir() -> Path:
 
     Priority:
       1. MCP_SERVER_DIR env var (explicit override)
-      2. ~/MCP-agent-memory (default installer path)
-      3. ~/MCP-servers/MCP-agent-memory (legacy path)
+      2. ~/MCP-servers/MCP-agent-memory (default installer path)
+      3. ~/MCP-agent-memory (legacy path)
     """
     # 1. Explicit override
     env_dir = os.environ.get("MCP_SERVER_DIR", "")
@@ -34,18 +34,18 @@ def _discover_mcp_server_dir() -> Path:
         logger.warning("MCP_SERVER_DIR=%s points to invalid installation, falling back", env_dir)
 
     # 2. Default installer path
-    default = Path.home() / "MCP-agent-memory"
+    default = Path.home() / "MCP-servers" / "MCP-agent-memory"
     if (default / ".venv" / "bin" / "python3").exists():
         return default
 
     # 3. Legacy path
-    legacy = Path.home() / "MCP-servers" / "MCP-agent-memory"
+    legacy = Path.home() / "MCP-agent-memory"
     if (legacy / ".venv" / "bin" / "python3").exists():
         return legacy
 
     # 4. Return default anyway — will fail with a clear error at spawn time
     logger.warning(
-        "MCP-agent-memory not found at ~/MCP-agent-memory or ~/MCP-servers/MCP-agent-memory. "
+        "MCP-agent-memory not found at ~/MCP-servers/MCP-agent-memory or ~/MCP-agent-memory. "
         "Set MCP_SERVER_DIR env var to the correct path."
     )
     return default

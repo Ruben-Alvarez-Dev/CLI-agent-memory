@@ -105,12 +105,12 @@ echo "────────────────────────�
 # Auto-discover MCP-agent-memory installation (same logic as stdio_manager.py)
 MCP_BASE="${MCP_SERVER_DIR:-}"
 if [ -z "$MCP_BASE" ] || [ ! -f "$MCP_BASE/.venv/bin/python3" ]; then
-    if [ -f "$HOME/MCP-agent-memory/.venv/bin/python3" ]; then
-        MCP_BASE="$HOME/MCP-agent-memory"
-    elif [ -f "$HOME/MCP-servers/MCP-agent-memory/.venv/bin/python3" ]; then
+    if [ -f "$HOME/MCP-servers/MCP-agent-memory/.venv/bin/python3" ]; then
         MCP_BASE="$HOME/MCP-servers/MCP-agent-memory"
+    elif [ -f "$HOME/MCP-agent-memory/.venv/bin/python3" ]; then
+        MCP_BASE="$HOME/MCP-agent-memory"
     else
-        MCP_BASE="$HOME/MCP-agent-memory"  # default for error message
+        MCP_BASE="$HOME/MCP-servers/MCP-agent-memory"  # default for error message
     fi
 fi
 MCP_PYTHON="$MCP_BASE/.venv/bin/python3"
