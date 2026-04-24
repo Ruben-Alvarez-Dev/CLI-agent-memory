@@ -119,23 +119,25 @@ MCP_SCRIPT="$MCP_BASE/src/unified/server/main.py"
 if [ -f "$MCP_PYTHON" ] && [ -f "$MCP_SCRIPT" ]; then
     pass "MCP-agent-memory found at $MCP_BASE"
 
-    # Test subprocess spawn
-    if timeout 10 python3 -c "
-import asyncio
+    # Test subprocess spawn (timeout inside Python — macOS compatible)
+    if python3 -c "
+import asyncio, sys
 from CLI_agent_memory.infra.adapters.mcp.stdio_manager import MCPSessionManager
-
 async def test():
     mgr = MCPSessionManager()
     await mgr.start()
     tools = await mgr.list_tools()
     await mgr.close()
     return len(tools)
-
-count = asyncio.run(test())
-print(f'subprocess_ok tools={count}')
+try:
+    print(f'subprocess_ok tools={asyncio.wait_for(test(), timeout=15)}')
+except asyncio.TimeoutError:
+    print('subprocess_timeout'); sys.exit(1)
+except Exception as e:
+    print(f'subprocess_error: {e}'); sys.exit(1)
 " 2>/dev/null | grep -q "subprocess_ok"; then
-        TOOL_COUNT=$(timeout 10 python3 -c "
-import asyncio
+        TOOL_COUNT=$(python3 -c "
+import asyncio, sys
 from CLI_agent_memory.infra.adapters.mcp.stdio_manager import MCPSessionManager
 async def test():
     mgr = MCPSessionManager()
@@ -143,8 +145,11 @@ async def test():
     tools = await mgr.list_tools()
     await mgr.close()
     return len(tools)
-print(asyncio.run(test()))
-" 2>/dev/null || echo "?")
+try:
+    print(asyncio.wait_for(test(), timeout=15))
+except Exception:
+    print('?')
+" 2>/dev/null)
         pass "MCP subprocess works ($TOOL_COUNT tools available)"
     else
         fail "MCP subprocess failed to start"
@@ -161,8 +166,8 @@ echo -e "${BOLD}[6/6] Integration smoke test${NC}"
 echo "────────────────────────────────────────────────────────────"
 
 if [ -f "$MCP_PYTHON" ] && [ -f "$MCP_SCRIPT" ]; then
-    INTEGRATION=$(timeout 30 python3 -c "
-import asyncio
+    INTEGRATION=$(python3 -c "
+import asyncio, sys
 from CLI_agent_memory.infra.adapters.mcp.memory_stdio import MCPMemoryStdioAdapter
 from CLI_agent_memory.infra.adapters.mcp.vault_stdio import MCPVaultStdioAdapter
 
@@ -178,8 +183,11 @@ async def test():
     if _global_manager: await _global_manager.close()
     return f'store={bool(mid)} list={found} vault_write={bool(entry.path)} vault_read={content is not None}'
 
-result = asyncio.run(test())
-print(result)
+try:
+    result = asyncio.wait_for(test(), timeout=30)
+    print(result)
+    except Exception as e:
+        print(f'error: {e}'); sys.exit(1)
 " 2>/dev/null || echo "error")
 
     if echo "$INTEGRATION" | grep -q "store=True"; then pass "Memory store"; else fail "Memory store"; fi
