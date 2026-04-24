@@ -10,14 +10,6 @@ Autonomous coding agent with hexagonal architecture. Connects to [MCP-agent-memo
 pip install git+https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory.git
 ```
 
-Or from a local clone:
-
-```bash
-git clone https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory.git
-cd CLI-agent-memory
-pip install -e .
-```
-
 ### Verification
 
 After installation, run the verification script to check everything works:

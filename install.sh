@@ -9,13 +9,18 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Auto-bootstrap (curl | bash) ──
 if [ ! -f "$SCRIPT_DIR/src/CLI_agent_memory/cli.py" ]; then
-    REPO_URL="https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory.git"
+    REPO_URL="https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory"
     TMPDIR=$(mktemp -d -t cli-mem.XXXXXX)
+    trap 'rm -rf "$TMPDIR"' EXIT
     echo "⬇  Downloading CLI-agent-memory..."
-    git clone --depth 1 "$REPO_URL" "$TMPDIR/repo" 2>/dev/null
-    bash "$TMPDIR/repo/install.sh" "$@"
-    rm -rf "$TMPDIR"
-    exit $?
+    if ! curl -fsSL "${REPO_URL}/archive/refs/heads/main.tar.gz" -o "$TMPDIR/src.tar.gz"; then
+        echo "  ✗ Download failed. Check your internet connection."
+        exit 1
+    fi
+    mkdir -p "$TMPDIR/repo"
+    tar -xzf "$TMPDIR/src.tar.gz" -C "$TMPDIR/repo" --strip-components=1
+    echo "  ✓ Source downloaded"
+    exec bash "$TMPDIR/repo/install.sh" "$@"
 fi
 
 echo ""
