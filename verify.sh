@@ -146,7 +146,7 @@ async def test():
     await mgr.close()
     return len(tools)
 try:
-    print(asyncio.wait_for(test(), timeout=15))
+    print(asyncio.run(asyncio.wait_for(test(), timeout=15)))
 except Exception:
     print('?')
 " 2>/dev/null)
@@ -184,7 +184,7 @@ async def test():
     return f'store={bool(mid)} list={found} vault_write={bool(entry.path)} vault_read={content is not None}'
 
 try:
-    result = asyncio.wait_for(test(), timeout=30)
+    result = asyncio.run(asyncio.wait_for(test(), timeout=30))
     print(result)
     except Exception as e:
         print(f'error: {e}'); sys.exit(1)
