@@ -87,7 +87,7 @@ echo "────────────────────────�
 
 TEST_DIR="$SCRIPT_DIR/tests"
 if [ -d "$TEST_DIR" ]; then
-    RESULT=$(python3 -m pytest "$TEST_DIR" -q --tb=no 2>/dev/null | tail -1)
+    RESULT=$(python3 -m pytest "$TEST_DIR" -q --tb=no 2>/dev/null | tail -1) || true
     if echo "$RESULT" | grep -q "passed"; then
         pass "$RESULT"
     else
@@ -119,7 +119,7 @@ MCP_SCRIPT="$MCP_BASE/src/unified/server/main.py"
 if [ -f "$MCP_PYTHON" ] && [ -f "$MCP_SCRIPT" ]; then
     pass "MCP-agent-memory found at $MCP_BASE"
 
-    # Test subprocess spawn (timeout inside Python — macOS compatible)
+    # Test subprocess spawn (Python-native timeout — macOS + Linux compatible)
     if python3 -c "
 import asyncio, sys
 from CLI_agent_memory.infra.adapters.mcp.stdio_manager import MCPSessionManager
@@ -130,7 +130,8 @@ async def test():
     await mgr.close()
     return len(tools)
 try:
-    print(f'subprocess_ok tools={asyncio.wait_for(test(), timeout=15)}')
+    count = asyncio.run(asyncio.wait_for(test(), timeout=15))
+    print(f'subprocess_ok tools={count}')
 except asyncio.TimeoutError:
     print('subprocess_timeout'); sys.exit(1)
 except Exception as e:
@@ -146,7 +147,8 @@ async def test():
     await mgr.close()
     return len(tools)
 try:
-    print(asyncio.run(asyncio.wait_for(test(), timeout=15)))
+    count = asyncio.run(asyncio.wait_for(test(), timeout=15))
+    print(count)
 except Exception:
     print('?')
 " 2>/dev/null)
@@ -186,8 +188,8 @@ async def test():
 try:
     result = asyncio.run(asyncio.wait_for(test(), timeout=30))
     print(result)
-    except Exception as e:
-        print(f'error: {e}'); sys.exit(1)
+except Exception as e:
+    print(f'error: {e}'); sys.exit(1)
 " 2>/dev/null || echo "error")
 
     if echo "$INTEGRATION" | grep -q "store=True"; then pass "Memory store"; else fail "Memory store"; fi
