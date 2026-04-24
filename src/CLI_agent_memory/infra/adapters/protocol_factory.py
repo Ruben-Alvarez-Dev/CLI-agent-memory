@@ -40,4 +40,5 @@ class ProtocolFactory:
         return NullVaultAdapter()
 
     def create_engram(self) -> EngramProtocol | None:
+        # Engram adapter not yet implemented — returns None (use force_local if needed)
         return None

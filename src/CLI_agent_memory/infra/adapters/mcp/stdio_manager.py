@@ -11,24 +11,92 @@ import json
 import logging
 import os
 import subprocess
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_MCP_ENV = {
-    "PYTHONPATH": "/Users/ruben/MCP-servers/MCP-agent-memory/src",
-    "MEMORY_SERVER_DIR": "/Users/ruben/MCP-servers/MCP-agent-memory",
-    "QDRANT_URL": "http://127.0.0.1:6333",
-    "EMBEDDING_BACKEND": "llama_server",
-    "LLAMA_SERVER_URL": "http://127.0.0.1:8081",
-    "EMBEDDING_MODEL": "bge-m3",
-    "EMBEDDING_DIM": "1024",
-    "LLM_BACKEND": "ollama",
-    "LLM_MODEL": "qwen2.5:7b",
-}
 
-_MCP_PYTHON = "/Users/ruben/MCP-servers/MCP-agent-memory/.venv/bin/python3"
-_MCP_SCRIPT = "/Users/ruben/MCP-servers/MCP-agent-memory/src/unified/server/main.py"
+def _discover_mcp_server_dir() -> Path:
+    """Auto-discover MCP-agent-memory installation directory.
+
+    Priority:
+      1. MCP_SERVER_DIR env var (explicit override)
+      2. ~/MCP-agent-memory (default installer path)
+      3. ~/MCP-servers/MCP-agent-memory (legacy path)
+    """
+    # 1. Explicit override
+    env_dir = os.environ.get("MCP_SERVER_DIR", "")
+    if env_dir:
+        p = Path(env_dir).expanduser()
+        if (p / ".venv" / "bin" / "python3").exists():
+            return p
+        logger.warning("MCP_SERVER_DIR=%s points to invalid installation, falling back", env_dir)
+
+    # 2. Default installer path
+    default = Path.home() / "MCP-agent-memory"
+    if (default / ".venv" / "bin" / "python3").exists():
+        return default
+
+    # 3. Legacy path
+    legacy = Path.home() / "MCP-servers" / "MCP-agent-memory"
+    if (legacy / ".venv" / "bin" / "python3").exists():
+        return legacy
+
+    # 4. Return default anyway — will fail with a clear error at spawn time
+    logger.warning(
+        "MCP-agent-memory not found at ~/MCP-agent-memory or ~/MCP-servers/MCP-agent-memory. "
+        "Set MCP_SERVER_DIR env var to the correct path."
+    )
+    return default
+
+
+def _load_mcp_env(base_dir: Path) -> dict[str, str]:
+    """Load environment from MCP-agent-memory's config/.env file.
+
+    Falls back to sensible defaults if .env is missing.
+    """
+    env: dict[str, str] = {
+        "PYTHONPATH": str(base_dir / "src"),
+        "MEMORY_SERVER_DIR": str(base_dir),
+    }
+
+    env_file = base_dir / "config" / ".env"
+    if env_file.exists():
+        try:
+            for line in env_file.read_text().splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                key, _, value = line.partition("=")
+                key, value = key.strip(), value.strip()
+                if key and value:
+                    env[key] = value
+            logger.debug("Loaded %d env vars from %s", len(env) - 2, env_file)
+        except OSError as e:
+            logger.warning("Failed to read %s: %s", env_file, e)
+    else:
+        logger.warning("MCP-agent-memory config/.env not found at %s", env_file)
+        # Sensible defaults
+        env.update({
+            "QDRANT_URL": "http://127.0.0.1:6333",
+            "EMBEDDING_BACKEND": "llama_server",
+            "LLAMA_SERVER_URL": "http://127.0.0.1:8081",
+            "EMBEDDING_MODEL": "bge-m3",
+            "EMBEDDING_DIM": "1024",
+            "LLM_BACKEND": "ollama",
+            "LLM_MODEL": "qwen2.5:7b",
+        })
+
+    return env
+
+
+# ── Resolved paths (computed once at import time) ───────────────
+
+_MCP_BASE = _discover_mcp_server_dir()
+_MCP_ENV = _load_mcp_env(_MCP_BASE)
+_MCP_PYTHON = str(_MCP_BASE / ".venv" / "bin" / "python3")
+_MCP_SCRIPT = str(_MCP_BASE / "src" / "unified" / "server" / "main.py")
 
 
 class MCPSessionManager:

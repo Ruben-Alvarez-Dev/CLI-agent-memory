@@ -17,7 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_p.add_argument("description", help="Task description")
     run_p.add_argument("--repo", default=".", help="Target repo (default: .)")
     run_p.add_argument("--llm", default="lmstudio", help="LLM backend: lmstudio | ollama")
-    run_p.add_argument("--memory", default="http://127.0.0.1:3050", help="MCP memory URL")
+    run_p.add_argument("--mcp-dir", default="", help="MCP-agent-memory install dir (auto-discovered if empty)")
     run_p.add_argument("--max-iter", type=int, default=50, help="Max iterations")
     run_p.add_argument("--dry-run", action="store_true", help="Simulate")
     run_p.add_argument("--json", action="store_true", help="JSON output")
@@ -44,8 +44,8 @@ def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
         return 1
 
     # Update config from args
-    if args.memory:
-        config.memory_url = args.memory
+    if args.mcp_dir:
+        config.mcp_server_dir = args.mcp_dir
 
     llm = create_llm_client(args.llm, config)
     factory = ProtocolFactory(config)
@@ -60,7 +60,7 @@ def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
         return 20
 
     if args.dry_run:
-        print(f"[DRY RUN] {args.description}\n  Repo: {repo}\n  LLM: {args.llm}\n  Mem: {config.memory_url}")
+        print(f"[DRY RUN] {args.description}\n  Repo: {repo}\n  LLM: {args.llm}\n  MCP: {config.mcp_server_dir or 'auto-discovered'}")
         return EXIT_OK
 
     loop_cfg = LoopConfig(max_iterations=args.max_iter, max_stagnation=config.max_stagnation,

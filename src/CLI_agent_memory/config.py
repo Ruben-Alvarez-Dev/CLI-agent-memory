@@ -14,8 +14,8 @@ class AgentMemoryConfig(BaseSettings):
     llm_api_key: str = ""
     llm_timeout: int = 120
 
-    # Memory
-    memory_url: str = "http://127.0.0.1:3050/mcp"
+    # Memory (MCP-agent-memory via stdio subprocess)
+    mcp_server_dir: str = ""  # Auto-discovers ~/MCP-agent-memory if empty. Override with AGENT_MEMORY_MCP_SERVER_DIR
     memory_enabled: bool = True
     force_local: bool = False
 

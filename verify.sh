@@ -102,11 +102,22 @@ echo ""
 echo -e "${BOLD}[5/6] MCP-agent-memory connectivity${NC}"
 echo "────────────────────────────────────────────────────────────"
 
-MCP_PYTHON="$HOME/MCP-servers/MCP-agent-memory/.venv/bin/python3"
-MCP_SCRIPT="$HOME/MCP-servers/MCP-agent-memory/src/unified/server/main.py"
+# Auto-discover MCP-agent-memory installation (same logic as stdio_manager.py)
+MCP_BASE="${MCP_SERVER_DIR:-}"
+if [ -z "$MCP_BASE" ] || [ ! -f "$MCP_BASE/.venv/bin/python3" ]; then
+    if [ -f "$HOME/MCP-agent-memory/.venv/bin/python3" ]; then
+        MCP_BASE="$HOME/MCP-agent-memory"
+    elif [ -f "$HOME/MCP-servers/MCP-agent-memory/.venv/bin/python3" ]; then
+        MCP_BASE="$HOME/MCP-servers/MCP-agent-memory"
+    else
+        MCP_BASE="$HOME/MCP-agent-memory"  # default for error message
+    fi
+fi
+MCP_PYTHON="$MCP_BASE/.venv/bin/python3"
+MCP_SCRIPT="$MCP_BASE/src/unified/server/main.py"
 
 if [ -f "$MCP_PYTHON" ] && [ -f "$MCP_SCRIPT" ]; then
-    pass "MCP-agent-memory found at $HOME/MCP-servers/MCP-agent-memory"
+    pass "MCP-agent-memory found at $MCP_BASE"
 
     # Test subprocess spawn
     if timeout 10 python3 -c "
@@ -139,8 +150,9 @@ print(asyncio.run(test()))
         fail "MCP subprocess failed to start"
     fi
 else
-    warn "MCP-agent-memory not found at $HOME/MCP-servers/MCP-agent-memory"
-    info "Install with: git clone <url> ~/MCP-servers/MCP-agent-memory && cd ~/MCP-servers/MCP-agent-memory && bash install.sh"
+    warn "MCP-agent-memory not found at $MCP_BASE"
+    info "Install with: curl -fsSL https://raw.githubusercontent.com/Ruben-Alvarez-Dev/MCP-agent-memory/main/install.sh | bash"
+    info "Or set MCP_SERVER_DIR env var to the correct path"
 fi
 echo ""
 
