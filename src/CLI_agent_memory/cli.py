@@ -8,7 +8,6 @@ from CLI_agent_memory.config import AgentMemoryConfig
 from CLI_agent_memory.domain.exit_codes import EXIT_OK, EXIT_USAGE
 from CLI_agent_memory.cli_helpers import auto_detect_test_command, resolve_description
 
-
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="CLI-agent-memory", description="Autonomous coding agent")
     sub = p.add_subparsers(dest="command")
@@ -43,8 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     return p
 
-
-def _assemble_engine(repo: Path, config: AgentMemoryConfig, llm_backend: str = "", model: str = ""):
+def _assemble_engine(repo: Path, config: AgentMemoryConfig, *,
+                     llm_backend: str = "", model: str = "", test_cmd: str = ""):
     """Build LoopEngine with all adapters (used by run and resume)."""
     from CLI_agent_memory.infra.llm import create_llm_client
     from CLI_agent_memory.infra.workspace.git_worktree import GitWorktreeProvider
@@ -52,46 +51,15 @@ def _assemble_engine(repo: Path, config: AgentMemoryConfig, llm_backend: str = "
     from CLI_agent_memory.domain.loop import LoopEngine
     from CLI_agent_memory.config import LoopConfig
     factory = ProtocolFactory(config)
+    cmd = test_cmd or config.test_command
     return LoopEngine(
         llm=create_llm_client(llm_backend or config.llm_backend, config, model=model or ""),
         memory=factory.create_memory(), thinking=factory.create_thinking(),
         vault=factory.create_vault(), workspace=GitWorktreeProvider(repo),
         config=LoopConfig(max_iterations=config.max_iterations, max_stagnation=config.max_stagnation,
-                       test_command=config.test_command),
+                       test_command=cmd),
     )
-
-
-def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
-
-    repo = Path(args.repo).resolve()
-    if not (repo / ".git").exists():
-        print(f"Error: {repo} is not a git repo", file=sys.stderr)
-        return 1
-    description = resolve_description(args)
-    if args.mcp_dir:
-        config.mcp_server_dir = args.mcp_dir
-    if args.force_local:
-        config.force_local = True
-    test_cmd = args.test_cmd or config.test_command or auto_detect_test_command(repo)
-    max_iter = args.max_iter if args.max_iter > 0 else config.max_iterations
-
-    llm = create_llm_client(args.llm, config, model=args.model or config.llm_model)
-    factory = ProtocolFactory(config)
-    engine = LoopEngine(llm=llm, memory=factory.create_memory(), thinking=factory.create_thinking(),
-                        vault=factory.create_vault(), workspace=GitWorktreeProvider(repo),
-                        config=LoopConfig(max_iterations=max_iter, max_stagnation=config.max_stagnation,
-                                       test_command=test_cmd))
-    result = __import__("asyncio").run(engine.run(description, repo))
-
-    if args.json:
-        print(result.model_dump_json(indent=2))
-    else:
-        print(f"Task {result.task_id}: {result.status.value}")
-        if result.error:
-            print(f"Error: {result.error}")
-        print(f"Duration: {result.duration_seconds:.1f}s")
     return EXIT_OK if result.status.value == "DONE" else 10
-
 
 def cmd_resume(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
     repo = Path(args.repo).resolve()
@@ -110,9 +78,8 @@ def cmd_resume(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
     if args.json:
         print(result.model_dump_json(indent=2))
     else:
-        print(f"Task {result.task_id}: {result.status.value} (resumed)")
-        if result.error:
-            print(f"Error: {result.error}")
+        msg = f"Task {result.task_id}: {result.status.value} (resumed)"
+        print(msg + (f"\nError: {result.error}" if result.error else ""))
     return EXIT_OK if result.status.value == "DONE" else 10
 
 
@@ -131,15 +98,15 @@ def main(argv: list[str] | None = None) -> int:
     config = AgentMemoryConfig()
     if args.command == "run":
         return cmd_run(args, config)
-    elif args.command == "resume":
+    if args.command == "resume":
         return cmd_resume(args, config)
-    elif args.command == "doctor":
+    if args.command == "doctor":
         from CLI_agent_memory.doctor import run_doctor
         repo = Path(args.repo).resolve() if hasattr(args, "repo") else Path(".")
         return run_doctor(repo, config)
-    elif args.command == "version":
+    if args.command == "version":
         return cmd_version()
-    elif args.command == "config":
+    if args.command == "config":
         print(config.model_dump_json(indent=2) if args.json else
               "\n".join(f"  {k}: {v}" for k, v in config.model_dump().items()))
         return EXIT_OK
