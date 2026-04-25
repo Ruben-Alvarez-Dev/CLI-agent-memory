@@ -1,12 +1,12 @@
 """CLI entry point — argparse, 0 business logic."""
-
 from __future__ import annotations
 import argparse
-import asyncio
 import sys
+from pathlib import Path
 
 from CLI_agent_memory.config import AgentMemoryConfig
 from CLI_agent_memory.domain.exit_codes import EXIT_OK, EXIT_USAGE
+from CLI_agent_memory.cli_helpers import auto_detect_test_command, resolve_description
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -14,15 +14,29 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command")
 
     run_p = sub.add_parser("run", help="Run an autonomous task")
-    run_p.add_argument("description", help="Task description")
+    run_p.add_argument("description", nargs="?", help="Task description")
     run_p.add_argument("--repo", default=".", help="Target repo (default: .)")
+    run_p.add_argument("--from-file", dest="from_file", default="", help="Read description from file")
     run_p.add_argument("--llm", default="lmstudio", help="LLM backend: lmstudio | ollama")
-    run_p.add_argument("--mcp-dir", default="", help="MCP-agent-memory install dir (auto-discovered if empty)")
-    run_p.add_argument("--max-iter", type=int, default=50, help="Max iterations")
+    run_p.add_argument("--model", default="", help="LLM model (default: auto-detect)")
+    run_p.add_argument("--mcp-dir", default="", help="MCP-agent-memory install dir")
+    run_p.add_argument("--max-iter", type=int, default=0, help="Max iterations (default: config)")
+    run_p.add_argument("--test-cmd", dest="test_cmd", default="", help="Test command (default: auto)")
+    run_p.add_argument("--base-ref", default="HEAD", help="Git base ref (default: HEAD)")
+    run_p.add_argument("--force-local", action="store_true", help="Force local adapters (no MCP)")
     run_p.add_argument("--dry-run", action="store_true", help="Simulate")
     run_p.add_argument("--json", action="store_true", help="JSON output")
 
     sub.add_parser("version", help="Show version")
+
+    resume_p = sub.add_parser("resume", help="Resume a paused task")
+    resume_p.add_argument("task_id", help="Task ID to resume")
+    resume_p.add_argument("--repo", default=".", help="Target repo (default: .)")
+    resume_p.add_argument("--mcp-dir", default="", help="MCP-agent-memory install dir")
+    resume_p.add_argument("--force-local", action="store_true", help="Force local adapters")
+    resume_p.add_argument("--json", action="store_true", help="JSON output")
+
+    sub.add_parser("doctor", help="System health check")
 
     cfg_p = sub.add_parser("config", help="Show configuration")
     cfg_p.add_argument("--json", action="store_true", help="JSON output")
@@ -30,44 +44,44 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
-    from pathlib import Path
+def _assemble_engine(repo: Path, config: AgentMemoryConfig, llm_backend: str = "", model: str = ""):
+    """Build LoopEngine with all adapters (used by run and resume)."""
     from CLI_agent_memory.infra.llm import create_llm_client
     from CLI_agent_memory.infra.workspace.git_worktree import GitWorktreeProvider
     from CLI_agent_memory.infra.adapters.protocol_factory import ProtocolFactory
     from CLI_agent_memory.domain.loop import LoopEngine
     from CLI_agent_memory.config import LoopConfig
+    factory = ProtocolFactory(config)
+    return LoopEngine(
+        llm=create_llm_client(llm_backend or config.llm_backend, config, model=model or ""),
+        memory=factory.create_memory(), thinking=factory.create_thinking(),
+        vault=factory.create_vault(), workspace=GitWorktreeProvider(repo),
+        config=LoopConfig(max_iterations=config.max_iterations, max_stagnation=config.max_stagnation,
+                       test_command=config.test_command),
+    )
+
+
+def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
 
     repo = Path(args.repo).resolve()
     if not (repo / ".git").exists():
         print(f"Error: {repo} is not a git repo", file=sys.stderr)
         return 1
-
-    # Update config from args
+    description = resolve_description(args)
     if args.mcp_dir:
         config.mcp_server_dir = args.mcp_dir
+    if args.force_local:
+        config.force_local = True
+    test_cmd = args.test_cmd or config.test_command or auto_detect_test_command(repo)
+    max_iter = args.max_iter if args.max_iter > 0 else config.max_iterations
 
-    llm = create_llm_client(args.llm, config)
+    llm = create_llm_client(args.llm, config, model=args.model or config.llm_model)
     factory = ProtocolFactory(config)
-
-    memory = factory.create_memory()
-    thinking = factory.create_thinking()
-    vault = factory.create_vault()
-    workspace = GitWorktreeProvider(repo)
-
-    if not llm.is_available():
-        print(f"Error: LLM '{args.llm}' not available", file=sys.stderr)
-        return 20
-
-    if args.dry_run:
-        print(f"[DRY RUN] {args.description}\n  Repo: {repo}\n  LLM: {args.llm}\n  MCP: {config.mcp_server_dir or 'auto-discovered'}")
-        return EXIT_OK
-
-    loop_cfg = LoopConfig(max_iterations=args.max_iter, max_stagnation=config.max_stagnation,
-                          test_command=config.test_command)
-    engine = LoopEngine(llm=llm, memory=memory, thinking=thinking,
-                        workspace=workspace, vault=vault, config=loop_cfg)
-    result = asyncio.run(engine.run(args.description, repo))
+    engine = LoopEngine(llm=llm, memory=factory.create_memory(), thinking=factory.create_thinking(),
+                        vault=factory.create_vault(), workspace=GitWorktreeProvider(repo),
+                        config=LoopConfig(max_iterations=max_iter, max_stagnation=config.max_stagnation,
+                                       test_command=test_cmd))
+    result = __import__("asyncio").run(engine.run(description, repo))
 
     if args.json:
         print(result.model_dump_json(indent=2))
@@ -76,7 +90,29 @@ def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
         if result.error:
             print(f"Error: {result.error}")
         print(f"Duration: {result.duration_seconds:.1f}s")
+    return EXIT_OK if result.status.value == "DONE" else 10
 
+
+def cmd_resume(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
+    repo = Path(args.repo).resolve()
+    if not (repo / ".git").exists():
+        print(f"Error: {repo} is not a git repo", file=sys.stderr)
+        return 1
+    if args.mcp_dir:
+        config.mcp_server_dir = args.mcp_dir
+    if args.force_local:
+        config.force_local = True
+    engine = _assemble_engine(repo, config)
+    result = __import__("asyncio").run(engine.resume(args.task_id, repo))
+    if result is None:
+        print(f"Error: no active task found with ID '{args.task_id}'", file=sys.stderr)
+        return 1
+    if args.json:
+        print(result.model_dump_json(indent=2))
+    else:
+        print(f"Task {result.task_id}: {result.status.value} (resumed)")
+        if result.error:
+            print(f"Error: {result.error}")
     return EXIT_OK if result.status.value == "DONE" else 10
 
 
@@ -89,27 +125,25 @@ def cmd_version() -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-
     if args.command is None:
         parser.print_help()
         return EXIT_USAGE
-
     config = AgentMemoryConfig()
-
     if args.command == "run":
         return cmd_run(args, config)
+    elif args.command == "resume":
+        return cmd_resume(args, config)
+    elif args.command == "doctor":
+        from CLI_agent_memory.doctor import run_doctor
+        repo = Path(args.repo).resolve() if hasattr(args, "repo") else Path(".")
+        return run_doctor(repo, config)
     elif args.command == "version":
         return cmd_version()
     elif args.command == "config":
-        if args.json:
-            print(config.model_dump_json(indent=2))
-        else:
-            for k, v in config.model_dump().items():
-                print(f"  {k}: {v}")
+        print(config.model_dump_json(indent=2) if args.json else
+              "\n".join(f"  {k}: {v}" for k, v in config.model_dump().items()))
         return EXIT_OK
-    else:
-        parser.print_help()
-        return EXIT_USAGE
+    return EXIT_USAGE
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ def test_default_values():
     """Config has correct defaults."""
     cfg = AgentMemoryConfig()
     assert cfg.llm_backend == "lmstudio"
-    assert cfg.memory_url == "http://127.0.0.1:3050/mcp"
+    assert cfg.mcp_server_dir == ""
     assert cfg.max_iterations == 50
     assert cfg.force_local is False
 
@@ -30,7 +30,7 @@ def test_config_model_fields():
     assert hasattr(cfg, "llm_backend")
     assert hasattr(cfg, "llm_model")
     assert hasattr(cfg, "llm_base_url")
-    assert hasattr(cfg, "memory_url")
+    assert hasattr(cfg, "mcp_server_dir")
     assert hasattr(cfg, "memory_enabled")
     assert hasattr(cfg, "force_local")
     assert hasattr(cfg, "max_iterations")

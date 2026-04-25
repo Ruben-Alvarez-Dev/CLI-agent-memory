@@ -8,10 +8,10 @@ from CLI_agent_memory.infra.llm.lmstudio import LMStudioClient
 from CLI_agent_memory.infra.llm.ollama import OllamaClient
 
 
-def create_llm_client(backend: str, config: AgentMemoryConfig) -> LLMClient:
+def create_llm_client(backend: str, config: AgentMemoryConfig, model: str = "") -> LLMClient:
     if backend == "lmstudio":
-        return LMStudioClient(base_url=config.llm_base_url, timeout=config.llm_timeout)
+        return LMStudioClient(base_url=config.llm_base_url, model=model, timeout=config.llm_timeout)
     elif backend == "ollama":
-        return OllamaClient(base_url=config.llm_base_url, model=config.llm_model or "llama3")
+        return OllamaClient(base_url=config.llm_base_url, model=model or config.llm_model or "llama3")
     else:
         raise ValueError(f"Unknown LLM backend: {backend}")
