@@ -1,8 +1,10 @@
 """CLI entry point — dispatch, 0 business logic."""
 from __future__ import annotations
+import io
 import signal
 import sys
 from pathlib import Path
+from CLI_agent_memory.config import AgentMemoryConfig
 
 from CLI_agent_memory.config import AgentMemoryConfig
 from CLI_agent_memory.domain.exit_codes import EXIT_OK, EXIT_USAGE
@@ -59,7 +61,6 @@ def cmd_run(args, config: AgentMemoryConfig) -> int:
         print(f"\n  Received {sig_name}, stopping gracefully...")
     original_sigint = signal.signal(signal.SIGINT, _sig_handler)
     original_sigterm = signal.signal(signal.SIGTERM, _sig_handler)
-
     try:
         result = __import__("asyncio").run(engine.run(description, repo))
     finally:
@@ -105,6 +106,15 @@ def cmd_version() -> int:
     print(f"CLI-agent-memory v{__version__}")
     return EXIT_OK
 
+
+def _json_run_dispatch(args, config, exit_code: int, captured: str) -> int:
+    """Format captured text output as JSON when --json is set."""
+    if not args.json:
+        print(captured, end="")
+        return exit_code
+    from CLI_agent_memory.output import json_output
+    json_output({"command": args.command, "exit_code": exit_code, "output": captured.strip()})
+    return exit_code
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()

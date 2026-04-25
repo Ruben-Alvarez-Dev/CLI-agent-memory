@@ -7,6 +7,7 @@ import argparse
 def build_parser() -> argparse.ArgumentParser:
     """Build the full CLI argument parser."""
     p = argparse.ArgumentParser(prog="CLI-agent-memory", description="Autonomous coding agent")
+    p.add_argument("--json", action="store_true", help="JSON output (all commands)")
     sub = p.add_subparsers(dest="command")
     _add_run(sub)
     _add_resume(sub)
@@ -38,7 +39,6 @@ def _add_run(sub: argparse._SubParsersAction) -> None:
     p.add_argument("--base-ref", default="HEAD", help="Git base ref (default: HEAD)")
     p.add_argument("--force-local", action="store_true", help="Force local adapters (no MCP)")
     p.add_argument("--dry-run", action="store_true", help="Simulate")
-    p.add_argument("--json", action="store_true", help="JSON output")
 
 
 def _add_resume(sub: argparse._SubParsersAction) -> None:
@@ -47,7 +47,6 @@ def _add_resume(sub: argparse._SubParsersAction) -> None:
     p.add_argument("--repo", default=".", help="Target repo (default: .)")
     p.add_argument("--mcp-dir", default="", help="MCP-agent-memory install dir")
     p.add_argument("--force-local", action="store_true", help="Force local adapters")
-    p.add_argument("--json", action="store_true", help="JSON output")
 
 
 def _add_status(sub: argparse._SubParsersAction) -> None:
