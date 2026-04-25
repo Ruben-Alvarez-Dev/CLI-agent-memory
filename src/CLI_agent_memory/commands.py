@@ -1,5 +1,4 @@
 """CLI subcommands — status, cleanup, think, recall, remember, decisions."""
-
 from __future__ import annotations
 import asyncio
 import shutil
@@ -116,7 +115,6 @@ def cmd_decisions(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
     from CLI_agent_memory.infra.adapters.protocol_factory import ProtocolFactory
     factory = ProtocolFactory(config)
     memory = factory.create_memory()
-    # Decisions are stored as memories with "decision" tag
     results = asyncio.run(memory.search(args.query or "", limit=args.limit))
     if not results:
         print("No decisions found.")

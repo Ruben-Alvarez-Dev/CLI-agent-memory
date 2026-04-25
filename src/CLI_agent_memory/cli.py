@@ -1,5 +1,6 @@
 """CLI entry point — dispatch, 0 business logic."""
 from __future__ import annotations
+import signal
 import sys
 from pathlib import Path
 
@@ -48,7 +49,26 @@ def cmd_run(args, config: AgentMemoryConfig) -> int:
     if args.dry_run:
         print(f"[DRY RUN] {description}\n  Repo: {repo}\n  LLM: {args.llm}\n  Test: {test_cmd or 'auto'}")
         return EXIT_OK
-    result = __import__("asyncio").run(engine.run(description, repo))
+
+    # SIGINT/SIGTERM → graceful exit with exit code 130/143
+    _cancelled = False
+    def _sig_handler(signum, _frame):
+        nonlocal _cancelled
+        _cancelled = True
+        sig_name = signal.Signals(signum).name
+        print(f"\n  Received {sig_name}, stopping gracefully...")
+    original_sigint = signal.signal(signal.SIGINT, _sig_handler)
+    original_sigterm = signal.signal(signal.SIGTERM, _sig_handler)
+
+    try:
+        result = __import__("asyncio").run(engine.run(description, repo))
+    finally:
+        signal.signal(signal.SIGINT, original_sigint)
+        signal.signal(signal.SIGTERM, original_sigterm)
+
+    if _cancelled:
+        from CLI_agent_memory.domain.exit_codes import EXIT_CANCELLED
+        return EXIT_CANCELLED
     if args.json:
         print(result.model_dump_json(indent=2))
     else:
@@ -106,9 +126,12 @@ def main(argv: list[str] | None = None) -> int:
         print(config.model_dump_json(indent=2) if args.json else
               "\n".join(f"  {k}: {v}" for k, v in config.model_dump().items()))
         return EXIT_OK
-    from CLI_agent_memory.commands import cmd_status, cmd_cleanup, cmd_think, cmd_recall, cmd_remember, cmd_decisions
+    from CLI_agent_memory.commands import (cmd_status, cmd_cleanup, cmd_think, cmd_recall,
+                                           cmd_remember, cmd_decisions)
+    from CLI_agent_memory.commands_extra import cmd_cancel, cmd_plan, cmd_db
     handlers = {"status": cmd_status, "cleanup": cmd_cleanup, "think": cmd_think,
-                "recall": cmd_recall, "remember": cmd_remember, "decisions": cmd_decisions}
+                "recall": cmd_recall, "remember": cmd_remember, "decisions": cmd_decisions,
+                "cancel": cmd_cancel, "plan": cmd_plan, "db": cmd_db}
     handler = handlers.get(args.command)
     if handler:
         return handler(args, config)

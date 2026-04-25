@@ -16,6 +16,9 @@ def build_parser() -> argparse.ArgumentParser:
     _add_recall(sub)
     _add_remember(sub)
     _add_decisions(sub)
+    _add_cancel(sub)
+    _add_plan(sub)
+    _add_db(sub)
     sub.add_parser("version", help="Show version")
     sub.add_parser("doctor", help="System health check")
     _add_config(sub)
@@ -87,3 +90,23 @@ def _add_decisions(sub: argparse._SubParsersAction) -> None:
 def _add_config(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser("config", help="Show configuration")
     p.add_argument("--json", action="store_true", help="JSON output")
+
+
+def _add_cancel(sub: argparse._SubParsersAction) -> None:
+    p = sub.add_parser("cancel", help="Cancel an active task")
+    p.add_argument("task_id", help="Task ID to cancel")
+    p.add_argument("--repo", default=".", help="Target repo (default: .)")
+
+
+def _add_plan(sub: argparse._SubParsersAction) -> None:
+    p = sub.add_parser("plan", help="Generate a plan (no execution)")
+    p.add_argument("task", help="Task description to plan")
+    p.add_argument("--model", default="", help="LLM model (default: auto-detect)")
+    p.add_argument("--save", default="", help="Save plan to file")
+
+
+def _add_db(sub: argparse._SubParsersAction) -> None:
+    p = sub.add_parser("db", help="Inspect local SQLite database")
+    p.add_argument("--repo", default=".", help="Target repo (default: .)")
+    p.add_argument("--tables", action="store_true", help="List tables with row counts")
+    p.add_argument("--query", default="", help="Run a SQL query")

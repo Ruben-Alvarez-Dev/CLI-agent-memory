@@ -215,3 +215,110 @@ class TestParserAllCommands:
         assert args.query == ""
         args2 = build_parser().parse_args(["decisions", "auth"])
         assert args2.query == "auth"
+
+    def test_cancel_parser(self):
+        from CLI_agent_memory.parser import build_parser
+        args = build_parser().parse_args(["cancel", "task-123", "--repo", "/tmp/test"])
+        assert args.task_id == "task-123"
+        assert args.repo == "/tmp/test"
+
+    def test_plan_parser(self):
+        from CLI_agent_memory.parser import build_parser
+        args = build_parser().parse_args(["plan", "build API", "--save", "PLAN.md"])
+        assert args.task == "build API"
+        assert args.save == "PLAN.md"
+
+    def test_db_parser(self):
+        from CLI_agent_memory.parser import build_parser
+        args = build_parser().parse_args(["db", "--tables"])
+        assert args.tables is True
+        args2 = build_parser().parse_args(["db", "--query", "SELECT 1"])
+        assert args2.query == "SELECT 1"
+
+
+class TestCmdCancel:
+    """cancel command — mark task as FAILED."""
+
+    def test_no_worktrees(self, tmp_path):
+        from CLI_agent_memory.commands_extra import cmd_cancel
+        args = FakeArgs(repo=str(tmp_path), task_id="none")
+        result = cmd_cancel(args, AgentMemoryConfig())
+        assert result == 1
+
+    def test_cancel_active_task(self, tmp_path):
+        from CLI_agent_memory.commands_extra import cmd_cancel
+        from CLI_agent_memory.domain.state import TaskContext
+        wt = tmp_path / ".worktrees" / "active-wt"
+        wt.mkdir(parents=True)
+        ctx = TaskContext(wt)
+        ctx.generate_task_id("branch-1")
+        ctx.transition(AgentState.CODING)
+        args = FakeArgs(repo=str(tmp_path), task_id=ctx.task_id)
+        result = cmd_cancel(args, AgentMemoryConfig())
+        assert result == 0
+        # Reload and verify
+        ctx2 = TaskContext.find_in_worktree(wt)
+        assert ctx2.state == AgentState.FAILED
+
+    def test_cancel_not_found(self, tmp_path):
+        from CLI_agent_memory.commands_extra import cmd_cancel
+        from CLI_agent_memory.domain.state import TaskContext
+        wt = tmp_path / ".worktrees" / "other-wt"
+        wt.mkdir(parents=True)
+        ctx = TaskContext(wt)
+        ctx.generate_task_id("b1")
+        ctx.transition(AgentState.CODING)
+        args = FakeArgs(repo=str(tmp_path), task_id="nonexistent")
+        result = cmd_cancel(args, AgentMemoryConfig())
+        assert result == 1
+
+
+class TestCmdPlan:
+    """plan command — standalone planning."""
+
+    @patch("CLI_agent_memory.infra.llm.create_llm_client")
+    def test_plan_llm_unavailable(self, mock_create):
+        from CLI_agent_memory.commands_extra import cmd_plan
+        mock_llm = MagicMock()
+        mock_llm.is_available.return_value = False
+        mock_create.return_value = mock_llm
+        args = FakeArgs(task="build API", model="", save="")
+        result = cmd_plan(args, AgentMemoryConfig())
+        assert result == 20
+
+
+class TestCmdDb:
+    """db command — inspect SQLite."""
+
+    def test_no_database(self, tmp_path):
+        from CLI_agent_memory.commands_extra import cmd_db
+        args = FakeArgs(repo=str(tmp_path), tables=False, query="")
+        result = cmd_db(args, AgentMemoryConfig())
+        assert result == 1
+
+    def test_db_info(self, tmp_path):
+        from CLI_agent_memory.commands_extra import cmd_db
+        from CLI_agent_memory.domain.db.schema import init_db
+        db_path = tmp_path / ".agent-memory" / "agent-memory.db"
+        init_db(db_path)
+        args = FakeArgs(repo=str(tmp_path), tables=False, query="")
+        result = cmd_db(args, AgentMemoryConfig())
+        assert result == 0
+
+    def test_db_tables(self, tmp_path):
+        from CLI_agent_memory.commands_extra import cmd_db
+        from CLI_agent_memory.domain.db.schema import init_db
+        db_path = tmp_path / ".agent-memory" / "agent-memory.db"
+        init_db(db_path)
+        args = FakeArgs(repo=str(tmp_path), tables=True, query="")
+        result = cmd_db(args, AgentMemoryConfig())
+        assert result == 0
+
+    def test_db_query(self, tmp_path):
+        from CLI_agent_memory.commands_extra import cmd_db
+        from CLI_agent_memory.domain.db.schema import init_db
+        db_path = tmp_path / ".agent-memory" / "agent-memory.db"
+        init_db(db_path)
+        args = FakeArgs(repo=str(tmp_path), tables=False, query="SELECT 1 AS ok")
+        result = cmd_db(args, AgentMemoryConfig())
+        assert result == 0

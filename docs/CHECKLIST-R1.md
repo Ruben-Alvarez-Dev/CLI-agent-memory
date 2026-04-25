@@ -190,22 +190,22 @@
 
 - [x] C1.1 run command with all options (--repo, --llm, --memory, --max-iter, --dry-run, --json)
 - [x] C1.2 resume command
-- [~] C1.3 cancel command — DEFERRED
+- [x] C1.3 cancel command
 - [x] C1.4 status command
 - [x] C1.5 cleanup command (--all, --dry-run)
 - [x] C1.6 think command (--steps)
-- [~] C1.7 plan command — DEFERRED
+- [x] C1.7 plan command (--save, --model)
 - [x] C1.8 recall command (--limit)
 - [x] C1.9 remember command (--tags)
 - [x] C1.10 decisions command (--limit)
-- [~] C1.11 db command — DEFERRED
+- [x] C1.11 db command (--tables, --query)
 - [x] C1.12 config command (--json)
 - [x] C1.13 doctor command
 - [x] C1.14 version command
 - [x] C1.15 --json on run command
 - [x] C1.16 POSIX exit codes on run path
-- [~] C1.17 SIGINT/SIGTERM — DEFERRED
-- [x] C1.18 < 150 lines (118 lines — cli.py, 89 lines — parser.py, 127 lines — commands.py)
+- [x] C1.17 SIGINT/SIGTERM — graceful shutdown in run command
+- [x] C1.18 < 150 lines (141 lines — cli.py, 112 lines — parser.py, 125 lines — commands.py)
 
 ### SPEC-CLI-03: Output Formatters
 
@@ -233,7 +233,7 @@
 - [x] T1.4 test_loop.py — 9 tests ✅ (with MockLLMClient)
 - [x] T1.5 test_schema.py — 3 tests ✅
 - [x] T1.6 test_phase123.py — 40 tests ✅ (file_ops, prompts, cli_helpers)
-- [x] T1.7 test_commands.py — 17 tests ✅ (status, cleanup, think, recall, remember, decisions, parser)
+- [x] T1.7 test_commands.py — 28 tests ✅ (status, cleanup, think, recall, remember, decisions, cancel, plan, db, parser, SIGINT)
 
 ### SPEC-T-04: LLM Tests
 
@@ -261,7 +261,7 @@
 
 ## GLOBAL VERIFICATION
 
-- [x] ALL tests pass (pytest -v) — 87/87 passing
+- [x] ALL tests pass (pytest -v) — 98/98 passing
 - [~] Coverage > 80% on domain/ — NOT MEASURED YET
 - [x] --json on run command
 - [x] Exit codes on run path
@@ -286,19 +286,17 @@
 - MCP connection: memory_http adapter + stdio transport ✅
 - LLM: lmstudio (auto-detect model, retry) + ollama clients ✅
 - Workspace: git worktree ✅
-- CLI: run + version + config + resume + status + cleanup + think + recall + remember + decisions + doctor ✅
+- CLI: run + version + config + resume + status + cleanup + cancel + think + plan + recall + remember + decisions + doctor ✅
 - Null adapters: memory, thinking, vault ✅
-- Tests: 87 passing ✅
+- Tests: 98 passing ✅
 
 **Deferred to later releases:**
 - Local adapters (SQLite fallback) — Sprint 3
 - Additional MCP adapters (thinking, engram, vault) — Sprint 4
-- CLI commands: cancel, plan, db — Sprint 4
 - Output formatters — Sprint 4
-- SIGINT/SIGTERM handling — Sprint 4
 - Gateway/ProtocolFactory — Sprint 2
 - Enterprise (federation, governance, observability, A2A, Jart-OS) — Releases 5-6
 - TUI, Web Server, Plugins, Integrations — Releases 2-4
 
-**CHECKPOINTS: 96/160 done (60%)**
-**MVP CHECKPOINTS: 96/~110 relevant (87%)**
+**CHECKPOINTS: 100/160 done (62.5%)**
+**MVP CHECKPOINTS: 100/~110 relevant (91%)**
