@@ -16,7 +16,7 @@ def run_doctor(repo: Path | None = None, config: AgentMemoryConfig | None = None
     checks = []
 
     # Git
-    git_ver = _run_cmd("git --version", silent=True)
+    git_ver = _run_cmd("git --version", silent=False)
     checks.append(("Git", bool(git_ver), git_ver or "not found"))
 
     # Python
@@ -29,7 +29,8 @@ def run_doctor(repo: Path | None = None, config: AgentMemoryConfig | None = None
     # LLM availability
     lmstudio = _check_url(config.llm_base_url + "/v1/models", "LM Studio")
     checks.append(("LM Studio", lmstudio[0], lmstudio[1]))
-    checks.append(("Ollama", _check_url("http://localhost:11434/api/tags", "Ollama")[0]))
+    ollama = _check_url("http://localhost:11434/api/tags", "Ollama")
+    checks.append(("Ollama", ollama[0], ollama[1]))
 
     # MCP-agent-memory
     mcp_dir = config.mcp_server_dir
