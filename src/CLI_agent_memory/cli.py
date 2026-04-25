@@ -1,15 +1,13 @@
 """CLI entry point — dispatch, 0 business logic."""
 from __future__ import annotations
-import io
 import signal
 import sys
 from pathlib import Path
 from CLI_agent_memory.config import AgentMemoryConfig
-
-from CLI_agent_memory.config import AgentMemoryConfig
 from CLI_agent_memory.domain.exit_codes import EXIT_OK, EXIT_USAGE
 from CLI_agent_memory.cli_helpers import auto_detect_test_command, resolve_description
-from CLI_agent_memory.parser import build_parser
+from CLI_agent_memory.parser import parse_args
+from CLI_agent_memory.output import capture_stdout, json_wrap, cmd_config
 
 
 def _assemble_engine(repo: Path, config: AgentMemoryConfig, *,
@@ -101,51 +99,36 @@ def cmd_resume(args, config: AgentMemoryConfig) -> int:
     return EXIT_OK if result.status.value == "DONE" else 10
 
 
-def cmd_version() -> int:
+def cmd_version(args, config: AgentMemoryConfig) -> int:
     from CLI_agent_memory import __version__
     print(f"CLI-agent-memory v{__version__}")
     return EXIT_OK
 
 
-def _json_run_dispatch(args, config, exit_code: int, captured: str) -> int:
-    """Format captured text output as JSON when --json is set."""
-    if not args.json:
-        print(captured, end="")
-        return exit_code
-    from CLI_agent_memory.output import json_output
-    json_output({"command": args.command, "exit_code": exit_code, "output": captured.strip()})
-    return exit_code
-
 def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parse_args(argv)
     if args.command is None:
         parser.print_help()
         return EXIT_USAGE
     config = AgentMemoryConfig()
-    if args.command == "run":
-        return cmd_run(args, config)
-    if args.command == "resume":
-        return cmd_resume(args, config)
-    if args.command == "doctor":
-        from CLI_agent_memory.doctor import run_doctor
-        return run_doctor(Path("."), config)
-    if args.command == "version":
-        return cmd_version()
-    if args.command == "config":
-        print(config.model_dump_json(indent=2) if args.json else
-              "\n".join(f"  {k}: {v}" for k, v in config.model_dump().items()))
-        return EXIT_OK
+    if args.command in ("run", "resume"):
+        return (cmd_run if args.command == "run" else cmd_resume)(args, config)
     from CLI_agent_memory.commands import (cmd_status, cmd_cleanup, cmd_think, cmd_recall,
                                            cmd_remember, cmd_decisions)
     from CLI_agent_memory.commands_extra import cmd_cancel, cmd_plan, cmd_db
     handlers = {"status": cmd_status, "cleanup": cmd_cleanup, "think": cmd_think,
                 "recall": cmd_recall, "remember": cmd_remember, "decisions": cmd_decisions,
-                "cancel": cmd_cancel, "plan": cmd_plan, "db": cmd_db}
-    handler = handlers.get(args.command)
-    if handler:
-        return handler(args, config)
-    return EXIT_USAGE
+                "cancel": cmd_cancel, "plan": cmd_plan, "db": cmd_db,
+                "version": cmd_version, "config": cmd_config}
+    if args.command == "doctor":
+        from CLI_agent_memory.doctor import run_doctor
+        code, out = capture_stdout(lambda a, c: run_doctor(Path("."), c), args, config)
+        return json_wrap(args, code, out)
+    fn = handlers.get(args.command)
+    if not fn:
+        return EXIT_USAGE
+    code, out = capture_stdout(fn, args, config)
+    return json_wrap(args, code, out)
 
 if __name__ == "__main__":
     sys.exit(main())

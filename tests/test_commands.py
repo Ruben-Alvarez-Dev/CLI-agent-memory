@@ -322,3 +322,59 @@ class TestCmdDb:
         args = FakeArgs(repo=str(tmp_path), tables=False, query="SELECT 1 AS ok")
         result = cmd_db(args, AgentMemoryConfig())
         assert result == 0
+
+
+class TestJsonFlag:
+    """--json flag works globally before and after subcommands."""
+
+    def test_json_before_command(self):
+        from CLI_agent_memory.parser import parse_args
+        args = parse_args(["--json", "version"])
+        assert args.json is True
+        assert args.command == "version"
+
+    def test_json_after_command(self):
+        from CLI_agent_memory.parser import parse_args
+        args = parse_args(["status", "--json"])
+        assert args.json is True
+        assert args.command == "status"
+
+    def test_json_after_run(self):
+        from CLI_agent_memory.parser import parse_args
+        args = parse_args(["run", "build API", "--json", "--dry-run"])
+        assert args.json is True
+        assert args.command == "run"
+
+    def test_no_json_default(self):
+        from CLI_agent_memory.parser import parse_args
+        args = parse_args(["version"])
+        assert args.json is False
+
+    def test_json_wrap_text_mode(self, capsys):
+        from CLI_agent_memory.output import json_wrap
+        args = FakeArgs(command="version", json=False)
+        code = json_wrap(args, 0, "Hello world\n")
+        assert code == 0
+        captured = capsys.readouterr()
+        assert captured.out == "Hello world\n"
+        assert not captured.out.strip().startswith("{")
+
+    def test_json_wrap_json_mode(self, capsys):
+        from CLI_agent_memory.output import json_wrap
+        args = FakeArgs(command="version", json=True)
+        code = json_wrap(args, 0, "Hello world\n")
+        assert code == 0
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data["command"] == "version"
+        assert data["exit_code"] == 0
+        assert data["output"] == "Hello world"
+
+    def test_capture_stdout(self, capsys):
+        from CLI_agent_memory.output import capture_stdout
+        args = FakeArgs(command="test")
+        code, text = capture_stdout(lambda a, c: print("captured"), args, AgentMemoryConfig())
+        assert code is None
+        assert text == "captured\n"
+        # Nothing printed to real stdout
+        assert not capsys.readouterr().out

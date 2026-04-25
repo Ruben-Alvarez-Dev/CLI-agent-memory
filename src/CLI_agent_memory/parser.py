@@ -7,7 +7,7 @@ import argparse
 def build_parser() -> argparse.ArgumentParser:
     """Build the full CLI argument parser."""
     p = argparse.ArgumentParser(prog="CLI-agent-memory", description="Autonomous coding agent")
-    p.add_argument("--json", action="store_true", help="JSON output (all commands)")
+    p.add_argument("--json", action="store_true", help="JSON output")
     sub = p.add_subparsers(dest="command")
     _add_run(sub)
     _add_resume(sub)
@@ -24,6 +24,20 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("doctor", help="System health check")
     _add_config(sub)
     return p
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse args, supporting --json before or after subcommand."""
+    if argv is None:
+        import sys as _sys
+        argv = list(_sys.argv[1:])
+    else:
+        argv = list(argv)
+    json_flag = "--json" in argv
+    cleaned = [a for a in argv if a != "--json"]
+    args = build_parser().parse_args(cleaned)
+    args.json = json_flag or args.json
+    return args
 
 
 def _add_run(sub: argparse._SubParsersAction) -> None:
@@ -87,8 +101,7 @@ def _add_decisions(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_config(sub: argparse._SubParsersAction) -> None:
-    p = sub.add_parser("config", help="Show configuration")
-    p.add_argument("--json", action="store_true", help="JSON output")
+    sub.add_parser("config", help="Show configuration")
 
 
 def _add_cancel(sub: argparse._SubParsersAction) -> None:

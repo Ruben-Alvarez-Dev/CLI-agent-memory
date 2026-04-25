@@ -215,8 +215,8 @@
 
 ### SPEC-CLI-03: Output Formatters
 
-- [~] C3.1 output/human.py — DEFERRED (inline in cli.py for MVP)
-- [~] C3.2 output/json.py — DEFERRED (inline in cli.py for MVP)
+- [x] C3.1 output.py — json_output(), text_output(), capture_stdout(), json_wrap(), cmd_config() (65 lines)
+- [x] C3.2 --json works on ALL 14 commands (before or after subcommand via parse_args) — tested (7 tests)
 
 ---
 
@@ -239,7 +239,7 @@
 - [x] T1.4 test_loop.py — 9 tests ✅ (with MockLLMClient)
 - [x] T1.5 test_schema.py — 3 tests ✅
 - [x] T1.6 test_phase123.py — 40 tests ✅ (file_ops, prompts, cli_helpers)
-- [x] T1.7 test_commands.py — 28 tests ✅ (status, cleanup, think, recall, remember, decisions, cancel, plan, db, parser)
+- [x] T1.7 test_commands.py — 35 tests ✅ (status, cleanup, think, recall, remember, decisions, cancel, plan, db, parser, --json)
 - [x] T1.8 test_local_adapters.py — 19 tests ✅ (memory_local, thinking_local, vault_local, protocol_factory, Ollama URL fix)
 
 ### SPEC-T-04: LLM Tests
@@ -261,14 +261,14 @@
 
 ### Documentation
 
-- [~] DOC1 README.md — DEFERRED
-- [~] DOC2 ARCHITECTURE.md — DEFERRED
+- [x] DOC1 README.md — comprehensive (install, 14 commands, options, architecture, config, auto-detect, testing)
+- [x] DOC2 ARCHITECTURE.md — full file tree, layers, data flow, design decisions
 
 ---
 
 ## GLOBAL VERIFICATION
 
-- [x] ALL tests pass (pytest -v) — 117/117 passing
+- [x] ALL tests pass (pytest -v) — 124/124 passing
 - [~] Coverage > 80% on domain/ — NOT MEASURED YET
 - [x] --json on run command
 - [x] Exit codes on run path
@@ -295,17 +295,18 @@
 - Workspace: git worktree ✅
 - CLI: run + version + config + resume + status + cleanup + cancel + think + plan + recall + remember + decisions + doctor ✅
 - Null adapters: memory, thinking, vault ✅
-- Tests: 117 passing ✅
+- Tests: 124 passing ✅
 - Local adapters: SQLite memory, thinking, filesystem vault ✅
-- Output formatters: output.py (json_output, text_output) ✅
+- Output formatters: output.py (json_output, text_output, capture_stdout, json_wrap) ✅
 - E2E verified: run command works with Ollama (llama3.2:3b) ✅
+- README.md + ARCHITECTURE.md complete ✅
+- --json on ALL 14 commands (before/after subcommand) ✅
 
 **Deferred to later releases:**
 - Additional MCP adapters (engram) — Sprint 4
-- Output formatters per-command — Sprint 4 (output.py created)
 - Gateway/ProtocolFactory — Sprint 2 (3-tier ProtocolFactory done)
 - Enterprise (federation, governance, observability, A2A, Jart-OS) — Releases 5-6
 - TUI, Web Server, Plugins, Integrations — Releases 2-4
 
-**CHECKPOINTS: 110/160 done (69%)**
-**MVP CHECKPOINTS: 110/~115 relevant (96%)**
+**CHECKPOINTS: 114/160 done (71%)**
+**MVP CHECKPOINTS: 114/~115 relevant (99%)**
