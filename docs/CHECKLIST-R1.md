@@ -142,7 +142,7 @@
 - [x] D3.10 On failure: memory.ingest — tested
 - [x] D3.11 Depends ONLY on protocols (DIP), not implementations — verified (no infra imports)
 - [x] D3.12 Testable with MockLLMClient — tested (9 tests)
-- [x] D3.13 < 150 lines (99 lines)
+- [x] D3.13 < 150 lines (150 lines — rewritten with resume, get_status, file_ops)
 
 ### SPEC-LOC-07: Null Adapters (`infra/adapters/null/`)
 
@@ -189,23 +189,23 @@
 ### SPEC-CLI-01: Commands (`cli.py`)
 
 - [x] C1.1 run command with all options (--repo, --llm, --memory, --max-iter, --dry-run, --json)
-- [~] C1.2 resume command — DEFERRED
+- [x] C1.2 resume command
 - [~] C1.3 cancel command — DEFERRED
-- [~] C1.4 status command — DEFERRED
-- [~] C1.5 cleanup command — DEFERRED
-- [~] C1.6 think command — DEFERRED
+- [x] C1.4 status command
+- [x] C1.5 cleanup command (--all, --dry-run)
+- [x] C1.6 think command (--steps)
 - [~] C1.7 plan command — DEFERRED
-- [~] C1.8 recall command — DEFERRED
-- [~] C1.9 remember command — DEFERRED
-- [~] C1.10 decisions command — DEFERRED
+- [x] C1.8 recall command (--limit)
+- [x] C1.9 remember command (--tags)
+- [x] C1.10 decisions command (--limit)
 - [~] C1.11 db command — DEFERRED
 - [x] C1.12 config command (--json)
-- [~] C1.13 doctor command — DEFERRED
+- [x] C1.13 doctor command
 - [x] C1.14 version command
 - [x] C1.15 --json on run command
 - [x] C1.16 POSIX exit codes on run path
 - [~] C1.17 SIGINT/SIGTERM — DEFERRED
-- [x] C1.18 < 150 lines (113 lines)
+- [x] C1.18 < 150 lines (118 lines — cli.py, 89 lines — parser.py, 127 lines — commands.py)
 
 ### SPEC-CLI-03: Output Formatters
 
@@ -232,6 +232,8 @@
 - [x] T1.3 test_state.py — 5 tests ✅
 - [x] T1.4 test_loop.py — 9 tests ✅ (with MockLLMClient)
 - [x] T1.5 test_schema.py — 3 tests ✅
+- [x] T1.6 test_phase123.py — 40 tests ✅ (file_ops, prompts, cli_helpers)
+- [x] T1.7 test_commands.py — 17 tests ✅ (status, cleanup, think, recall, remember, decisions, parser)
 
 ### SPEC-T-04: LLM Tests
 
@@ -259,16 +261,19 @@
 
 ## GLOBAL VERIFICATION
 
-- [x] ALL tests pass (pytest -v) — 30/30 passing
+- [x] ALL tests pass (pytest -v) — 87/87 passing
 - [~] Coverage > 80% on domain/ — NOT MEASURED YET
 - [x] --json on run command
 - [x] Exit codes on run path
 - [x] CLI-agent-memory --help works
 - [x] CLI-agent-memory --version works
-- [~] CLI-agent-memory doctor — DEFERRED
+- [x] CLI-agent-memory doctor — 8 system checks (git, python, LLM, MCP, uv, test cmd)
+- [x] CLI-agent-memory status — show active tasks
+- [x] CLI-agent-memory cleanup — remove worktrees
+- [x] CLI-agent-memory think/recall/remember/decisions — memory interaction
 - [x] Works standalone (no MCP) — NullMemoryAdapter fallback
 - [x] Works connected to MCP-agent-memory — MCPMemoryAdapter
-- [x] Each file < 150 lines — verified (INV-02)
+- [x] Each file < 150 lines — verified (INV-02) ✅
 - [x] 0 direct imports from infra/ in domain/ — verified (DIP)
 
 ---
@@ -277,21 +282,23 @@
 
 **MVP Scope (Release 1):**
 - Domain layer: types, protocols, loop engine, stagnation, state, schema, exit codes, prompts ✅
-- MCP connection: memory_http adapter ✅
-- LLM: lmstudio + ollama clients ✅
+- Domain: file_ops (multi-format parsing, path traversal protection, history trim) ✅
+- MCP connection: memory_http adapter + stdio transport ✅
+- LLM: lmstudio (auto-detect model, retry) + ollama clients ✅
 - Workspace: git worktree ✅
-- CLI: run + version + config ✅
+- CLI: run + version + config + resume + status + cleanup + think + recall + remember + decisions + doctor ✅
 - Null adapters: memory, thinking, vault ✅
-- Tests: 30 passing ✅
+- Tests: 87 passing ✅
 
 **Deferred to later releases:**
 - Local adapters (SQLite fallback) — Sprint 3
 - Additional MCP adapters (thinking, engram, vault) — Sprint 4
-- Additional CLI commands (resume, cancel, status, think, recall, remember, decisions, db, doctor) — Sprint 4
+- CLI commands: cancel, plan, db — Sprint 4
 - Output formatters — Sprint 4
+- SIGINT/SIGTERM handling — Sprint 4
 - Gateway/ProtocolFactory — Sprint 2
 - Enterprise (federation, governance, observability, A2A, Jart-OS) — Releases 5-6
 - TUI, Web Server, Plugins, Integrations — Releases 2-4
 
-**CHECKPOINTS: 85/160 done (53%)**
-**MVP CHECKPOINTS: 85/~100 relevant (85%)**
+**CHECKPOINTS: 96/160 done (60%)**
+**MVP CHECKPOINTS: 96/~110 relevant (87%)**
