@@ -147,15 +147,27 @@ function isMemoryTool(toolName: string): boolean {
 
 // ─── Context Injection State ──────────────────────────────────────────────────
 // Shared between chat.message (fetches context) and system.transform (injects it).
-// This is the ONLY state shared between hooks — everything else is stateless.
+// Also used by tool.execute.before enforcement gate.
 
 let lastContextInjection: string = ""
 let lastContextFetchTime: number = 0
 const CONTEXT_FETCH_COOLDOWN_MS = 30_000 // 30 seconds between context fetches
 
+// ─── Enforcement State ────────────────────────────────────────────────────────
+// Per-session tracking. "Verified" = context successfully fetched.
+// "Attempted" = we tried (success or fail). Gate only blocks if NOT attempted.
+
+const contextVerified = new Set<string>()   // session had successful context fetch
+const contextAttempted = new Set<string>()  // session attempted context fetch (success or fail)
+
+// Tools that REQUIRE context verification before use.
+// Read-only tools (read, glob, grep) are allowed without context.
+const CONTEXT_REQUIRED_TOOLS = new Set(["write", "edit"])
+
 /**
  * Fetch context from vk-cache for the user's query.
  * Returns injection_text or empty string on failure.
+ * Updates lastContextInjection for system.transform to inject.
  */
 async function fetchContext(query: string): Promise<string> {
   const now = Date.now()
@@ -381,8 +393,15 @@ export const BackpackOrchestrator: Plugin = async (ctx) => {
         })
 
         // v1.3: Fetch relevant context for the user's query
-        // Stored in lastContextInjection — injected by system.transform
-        fetchContext(content)
+        // First call per session is AWAITED — ensures context is available
+        // before the agent starts using tools. Subsequent calls are fire-and-forget.
+        if (!contextAttempted.has(input.sessionID)) {
+          const ctx = await fetchContext(content)
+          if (ctx) contextVerified.add(input.sessionID)
+          contextAttempted.add(input.sessionID)
+        } else {
+          fetchContext(content)
+        }
       }
     },
 
@@ -390,6 +409,25 @@ export const BackpackOrchestrator: Plugin = async (ctx) => {
     // Blocks commit messages that don't follow Conventional Commits.
 
     "tool.execute.before": async (input, output) => {
+      // ── Gate 1: Context Verification ──────────────────────────────
+      // Block write/edit if context has not been fetched for this session.
+      // This enforces the golden rule: always know the landscape before changing it.
+      // Read-only tools (read, glob, grep) are allowed without context.
+      if (CONTEXT_REQUIRED_TOOLS.has(input.tool) &&
+          !contextVerified.has(input.sessionID) &&
+          !contextAttempted.has(input.sessionID) &&
+          !subAgentSessions.has(input.sessionID)) {
+        throw new Error(
+          `BLOCKED: Context verification required before writing files.\n` +
+          `The memory system has not provided context for this session yet.\n` +
+          `This is an enforcement gate — the agent MUST have verified knowledge\n` +
+          `of the project ecosystem before making any modifications.\n` +
+          `If the memory server is unavailable, try again (graceful degradation\n` +
+          `kicks in after the first attempt).`
+        )
+      }
+
+      // ── Gate 2: Conventional Commits ──────────────────────────────
       if (input.tool === "bash") {
         const cmd: string = output.args?.command ?? ""
         // Match git commit -m "message" or git commit --message="message"
