@@ -12,6 +12,7 @@ def create_llm_client(backend: str, config: AgentMemoryConfig, model: str = "") 
     if backend == "lmstudio":
         return LMStudioClient(base_url=config.llm_base_url, model=model, timeout=config.llm_timeout)
     elif backend == "ollama":
-        return OllamaClient(base_url=config.llm_base_url, model=model or config.llm_model or "llama3")
+        # Ollama default port is 11434, ignore config.llm_base_url (which is LM Studio's 1234)
+        return OllamaClient(base_url="http://localhost:11434", model=model or config.llm_model or "llama3")
     else:
         raise ValueError(f"Unknown LLM backend: {backend}")
