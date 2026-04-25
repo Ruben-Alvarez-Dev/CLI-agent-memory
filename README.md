@@ -193,6 +193,44 @@ pytest tests/ --cov=CLI_agent_memory  # With coverage
 | INV-04 | Protocols use `@runtime_checkable` |
 | INV-05 | Every adapter handles exceptions gracefully |
 
+## Adapters for Other CLIs
+
+CLI-agent-memory is the **active orchestration layer** (the tractor head) of "La Mochila" — the backpack system. The MCP-agent-memory server is the passive memory engine. CLI-specific plugins live in `adapters/` so any tool can connect:
+
+| Adapter | Status | Description |
+|---------|--------|-------------|
+| `opencode/` | ✅ Active | TypeScript plugin with 6 hooks — auto-capture, context injection, enforcement gates |
+| `claude-code/` | 🔜 Planned | Claude Code hooks via `.claude/` config |
+| `aider/` | 🔜 Planned | Aider config + scripting |
+| `cursor/` | 🔜 Planned | `.cursorrules` + MCP config |
+
+All adapters talk to the same MCP-agent-memory HTTP sidecar on `:8890`. The adapter pattern means adding a new CLI is a matter of writing hooks for that CLI's event system — the memory backend stays identical.
+
+### OpenCode Plugin (backpack-orchestrator)
+
+The OpenCode adapter is the most advanced. It provides:
+
+- **Auto-capture**: Every user prompt, tool call, and file edit → stored as raw events
+- **Auto-context**: Fetches relevant memories on every user message, injects into system prompt
+- **Enforcement gates**: Blocks `write`/`edit` until memory context is verified, blocks non-conventional commits
+- **Compaction recovery**: Saves conversation + triggers consolidation before context is lost
+- **Background verification** (roadmap v1.4): Verifies stale memories during session idle time
+
+## Roadmap Integration
+
+CLI-agent-memory and MCP-agent-memory share a unified roadmap. See [MCP-agent-memory ROADMAP](https://github.com/Ruben-Alvarez-Dev/MCP-agent-memory/blob/main/docs/ROADMAP.md) for the full plan.
+
+| Version | Focus | Status |
+|---------|-------|--------|
+| v1.0 | CLI MVP — autonomous coding agent | ✅ 115/115 checkpoints |
+| v1.2 | Backpack enforcement layer | ✅ Shipped |
+| v1.3 | Smart context injection + enforcement gates | ✅ Shipped |
+| v1.4 | Continuous knowledge verification (freshness scoring) | 🔜 Next |
+| v1.5 | Expanded enforcement (env guards, blind write blocks) | Planned |
+| v2.0 | Multi-agent orchestration with shared memory | Future |
+
+**Research foundation**: [Verification of Continuous Knowledge](https://github.com/Ruben-Alvarez-Dev/MCP-agent-memory/blob/main/docs/research/verificacion-continua-conocimiento.md) — neuroscientific basis for freshness tracking, reconsolidation, and background verification.
+
 ## License
 
 MIT
