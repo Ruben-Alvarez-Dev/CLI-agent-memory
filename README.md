@@ -1,8 +1,8 @@
 # CLI-agent-memory
 
-> Autonomous coding agent CLI. Hexagonal architecture. Zero enterprise dependencies.
+> Autonomous coding agent CLI. Hexagonal architecture. Zero enterprise dependencies. 100% local LLM.
 
-Connects to [MCP-agent-memory](https://github.com/Ruben-Alvarez-Dev/MCP-agent-memory) for persistent memory, reasoning, and vault — or runs fully standalone with local SQLite adapters.
+Connects to [MCP-agent-memory](https://github.com/Ruben-Alvarez-Dev/MCP-agent-memory) for persistent memory, reasoning, and vault — or runs fully standalone with local SQLite adapters. Uses **llama.cpp** for all LLM inference — no cloud APIs, no external services.
 
 ## Install
 
@@ -29,7 +29,7 @@ cli-agent-memory run "Add input validation to the login form" --repo ./my-app
 cli-agent-memory plan "Refactor database layer to use repository pattern" --repo ./my-app
 
 # Use a specific model
-cli-agent-memory run "Fix the failing auth tests" --llm ollama --model llama3.2:3b --repo ./my-app
+cli-agent-memory run "Fix the failing auth tests" --llm llama_cpp --model qwen2.5-7b-instruct-Q4_K_M --repo ./my-app
 
 # Run offline (local SQLite, no MCP required)
 cli-agent-memory run "Implement pagination" --repo ./my-app --force-local
@@ -73,8 +73,8 @@ All commands support `--json` for structured output.
 | Flag | Description |
 |------|-------------|
 | `--repo .` | Target git repository (default: `.`) |
-| `--llm lmstudio\|ollama` | LLM backend |
-| `--model <name>` | LLM model (default: auto-detect) |
+| `--llm llama_cpp` | LLM backend (only llama.cpp supported) |
+| `--model <name>` | LLM model (default: auto-detect from `models/`) |
 | `--force-local` | Use SQLite instead of MCP |
 | `--max-iter N` | Max loop iterations (default: 50) |
 | `--test-cmd "..."` | Test command for verification |
@@ -105,8 +105,8 @@ All commands support `--json` for structured output.
 │                                                  │
 │  ┌───────────┐  ┌──────────┐  ┌───────────────┐   │
 │  │ MCP       │  │  Local   │  │     LLM      │   │
-│  │  stdio    │  │ SQLite   │  │  LM Studio   │   │
-│  │  transport│  │ filesystem│  │  Ollama      │   │
+│  │  stdio    │  │ SQLite   │  │  llama.cpp   │   │
+│  │  transport│  │ filesystem│  │  (local)     │   │
 │  └───────────┘  └──────────┘  └───────────────┘   │
 └─────────────────────────────────────────────────┘
 ```
@@ -154,9 +154,9 @@ Environment variables with `AGENT_MEMORY_` prefix:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AGENT_MEMORY_LLM_BACKEND` | `lmstudio` | `lmstudio` or `ollama` |
-| `AGENT_MEMORY_LLM_BASE_URL` | `http://localhost:1234` | LLM API URL |
-| `AGENT_MEMORY_LLM_MODEL` | *(auto)* | LLM model name |
+| `AGENT_MEMORY_LLM_BACKEND` | `llama_cpp` | Only `llama_cpp` supported |
+| `AGENT_MEMORY_LLM_BASE_URL` | `http://localhost:8080` | LLM API URL (llama.cpp server) |
+| `AGENT_MEMORY_LLM_MODEL` | *(auto)* | LLM model name (auto-detected from `models/`) |
 | `AGENT_MEMORY_LLM_TIMEOUT` | `120` | Request timeout in seconds |
 | `AGENT_MEMORY_MEMORY_ENABLED` | `true` | Enable MCP memory |
 | `AGENT_MEMORY_MCP_SERVER_DIR` | *(auto)* | MCP-agent-memory path |
@@ -173,7 +173,7 @@ Environment variables with `AGENT_MEMORY_` prefix:
 The CLI automatically detects:
 
 - **Test command** from project files: `pyproject.toml` → `pytest`, `package.json` → `npm test`, `Cargo.toml` → `cargo test`, `go.mod` → `go test ./...`, `Makefile` → `make test`, `pom.xml` → `mvn test`, `setup.py` → `pytest`
-- **LLM model** from LM Studio's `GET /v1/models` endpoint
+- **LLM model** from `models/` directory (`.gguf` files) or running llama.cpp server
 - **MCP-agent-memory** installation at `~/MCP-servers/MCP-agent-memory`
 
 ## Testing
