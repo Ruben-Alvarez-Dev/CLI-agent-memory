@@ -7,7 +7,7 @@ Connects to [MCP-agent-memory](https://github.com/Ruben-Alvarez-Dev/MCP-agent-me
 ## Install
 
 ```bash
-uv pip install --system git+ssh://git@github.com/Ruben-Alvarez-Dev/CLI-agent-memory.git
+uv pip install --system git+https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory.git
 ```
 
 Requires **Python ≥ 3.12** and [uv](https://docs.astral.sh/uv/).
