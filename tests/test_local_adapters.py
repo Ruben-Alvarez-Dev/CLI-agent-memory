@@ -155,16 +155,19 @@ class TestProtocolFactory:
         mem = factory.create_memory()
         assert mem.__class__.__name__ == "MCPMemoryStdioAdapter"
 
-    def test_ollama_uses_correct_port(self):
+    def test_llama_cpp_uses_config_url(self):
         from CLI_agent_memory.infra.llm import create_llm_client
         from CLI_agent_memory.config import AgentMemoryConfig
-        c = AgentMemoryConfig()  # llm_base_url = localhost:1234 (LM Studio)
-        client = create_llm_client("ollama", c)
-        assert client.base_url == "http://localhost:11434"
+        c = AgentMemoryConfig()
+        client = create_llm_client("llama_cpp", c)
+        assert client.base_url == "http://localhost:8081"
 
-    def test_lmstudio_uses_config_url(self):
+    def test_unknown_backend_raises(self):
         from CLI_agent_memory.infra.llm import create_llm_client
         from CLI_agent_memory.config import AgentMemoryConfig
-        c = AgentMemoryConfig(llm_base_url="http://myhost:9999")
-        client = create_llm_client("lmstudio", c)
-        assert client.base_url == "http://myhost:9999"
+        c = AgentMemoryConfig()
+        try:
+            create_llm_client("unknown", c)
+            assert False, "Should have raised"
+        except ValueError:
+            pass

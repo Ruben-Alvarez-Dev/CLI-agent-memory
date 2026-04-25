@@ -45,7 +45,7 @@ def _add_run(sub: argparse._SubParsersAction) -> None:
     p.add_argument("description", nargs="?", help="Task description")
     p.add_argument("--repo", default=".", help="Target repo (default: .)")
     p.add_argument("--from-file", dest="from_file", default="", help="Read description from file")
-    p.add_argument("--llm", default="lmstudio", help="LLM backend: lmstudio | ollama")
+    p.add_argument("--llm", default="llama_cpp", help="LLM backend: llama_cpp")
     p.add_argument("--model", default="", help="LLM model (default: auto-detect)")
     p.add_argument("--mcp-dir", default="", help="MCP-agent-memory install dir")
     p.add_argument("--max-iter", type=int, default=0, help="Max iterations (default: config)")

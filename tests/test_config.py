@@ -8,7 +8,7 @@ from CLI_agent_memory.config import AgentMemoryConfig
 def test_default_values():
     """Config has correct defaults."""
     cfg = AgentMemoryConfig()
-    assert cfg.llm_backend == "lmstudio"
+    assert cfg.llm_backend == "llama_cpp"
     assert cfg.mcp_server_dir == ""
     assert cfg.max_iterations == 50
     assert cfg.force_local is False
@@ -16,10 +16,10 @@ def test_default_values():
 
 def test_env_prefix():
     """Config loads from AGENT_MEMORY_ env vars."""
-    os.environ["AGENT_MEMORY_LLM_BACKEND"] = "ollama"
+    os.environ["AGENT_MEMORY_LLM_BACKEND"] = "llama_cpp"
     try:
         cfg = AgentMemoryConfig()
-        assert cfg.llm_backend == "ollama"
+        assert cfg.llm_backend == "llama_cpp"
     finally:
         del os.environ["AGENT_MEMORY_LLM_BACKEND"]
 

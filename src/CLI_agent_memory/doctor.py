@@ -27,10 +27,9 @@ def run_doctor(repo: Path | None = None, config: AgentMemoryConfig | None = None
     checks.append(("Git repo", is_repo, str(repo) if is_repo else "not a git repo"))
 
     # LLM availability
-    lmstudio = _check_url(config.llm_base_url + "/v1/models", "LM Studio")
-    checks.append(("LM Studio", lmstudio[0], lmstudio[1]))
-    ollama = _check_url("http://localhost:11434/api/tags", "Ollama")
-    checks.append(("Ollama", ollama[0], ollama[1]))
+    llm_url = config.llm_base_url + "/v1/models"
+    llm_check = _check_url(llm_url, "llama.cpp server")
+    checks.append(("LLM server", llm_check[0], llm_check[1]))
 
     # MCP-agent-memory
     mcp_dir = config.mcp_server_dir

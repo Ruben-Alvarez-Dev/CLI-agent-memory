@@ -8,9 +8,9 @@ from pydantic_settings import BaseSettings
 
 class AgentMemoryConfig(BaseSettings):
     # LLM
-    llm_backend: str = "lmstudio"
+    llm_backend: str = "llama_cpp"
     llm_model: str = ""
-    llm_base_url: str = "http://localhost:1234"
+    llm_base_url: str = "http://localhost:8081"
     llm_api_key: str = ""
     llm_timeout: int = 120
 

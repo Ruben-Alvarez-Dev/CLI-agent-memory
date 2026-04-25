@@ -13,7 +13,7 @@ _DEFAULTS = {
     "LLAMA_SERVER_URL": "http://127.0.0.1:8081",
     "EMBEDDING_MODEL": "bge-m3",
     "EMBEDDING_DIM": "1024",
-    "LLM_BACKEND": "ollama",
+    "LLM_BACKEND": "llama_cpp",
     "LLM_MODEL": "qwen2.5:7b",
 }
 
