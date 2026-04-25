@@ -39,3 +39,4 @@ Thumbs.db
 
 # ruff
 .ruff_cache/
+.worktrees/
