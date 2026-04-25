@@ -59,6 +59,35 @@ def _assemble_engine(repo: Path, config: AgentMemoryConfig, *,
         config=LoopConfig(max_iterations=config.max_iterations, max_stagnation=config.max_stagnation,
                        test_command=cmd),
     )
+
+def cmd_run(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
+    repo = Path(args.repo).resolve()
+    if not (repo / ".git").exists():
+        print(f"Error: {repo} is not a git repo", file=sys.stderr)
+        return 1
+    description = resolve_description(args)
+    if args.mcp_dir:
+        config.mcp_server_dir = args.mcp_dir
+    if args.force_local:
+        config.force_local = True
+    test_cmd = args.test_cmd or config.test_command or auto_detect_test_command(repo)
+    if args.max_iter > 0:
+        config.max_iterations = args.max_iter
+    engine = _assemble_engine(repo, config, llm_backend=args.llm,
+                             model=args.model or config.llm_model, test_cmd=test_cmd)
+    if not engine.llm.is_available() and not args.dry_run:
+        print(f"Error: LLM '{args.llm}' not available", file=sys.stderr)
+        return 20
+    if args.dry_run:
+        print(f"[DRY RUN] {description}\n  Repo: {repo}\n  LLM: {args.llm}\n  Test: {test_cmd or 'auto'}")
+        return EXIT_OK
+    result = __import__("asyncio").run(engine.run(description, repo))
+    if args.json:
+        print(result.model_dump_json(indent=2))
+    else:
+        print(f"Task {result.task_id}: {result.status.value}\nDuration: {result.duration_seconds:.1f}s")
+        if result.error:
+            print(f"Error: {result.error}")
     return EXIT_OK if result.status.value == "DONE" else 10
 
 def cmd_resume(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
