@@ -27,25 +27,25 @@ class LocalThinkingAdapter(ThinkingProtocol):
             self._conn = None
 
     async def think(self, problem: str, depth: int = 5) -> ThinkingResult:
-        # Local adapter can't think — just record the problem
         db = self._db()
-        cur = db.execute("INSERT INTO thinking_sessions (problem) VALUES (?)", (problem,))
-        session_id = str(cur.lastrowid)
+        db.execute("INSERT INTO thinking_sessions (problem) VALUES (?)", (problem,))
         db.commit()
+        row = db.execute("SELECT id FROM thinking_sessions ORDER BY rowid DESC LIMIT 1").fetchone()
+        session_id = str(row[0]) if row else ""
         return ThinkingResult(session_id=session_id, problem=problem)
 
     async def get_session(self, session_id: str) -> ThinkingResult | None:
         row = self._db().execute(
-            "SELECT id, problem, conclusion FROM thinking_sessions WHERE id = ?", (session_id,)
+            "SELECT problem, conclusion FROM thinking_sessions WHERE id = ?", (int(session_id) if session_id.isdigit() else session_id,)
         ).fetchone()
         if not row:
             return None
         steps_rows = self._db().execute(
             "SELECT step_number, thought, next_needed FROM thinking_steps WHERE session_id = ? ORDER BY step_number",
-            (session_id,),
+            (int(session_id) if session_id.isdigit() else session_id,),
         ).fetchall()
         return ThinkingResult(
-            session_id=str(row[0]), problem=row[1],
+            session_id=session_id, problem=row[0] if row else "",
             steps=[ThinkingStep(step_number=r[0], thought=r[1], next_needed=bool(r[2])) for r in steps_rows],
-            conclusion=row[2] or "",
+            conclusion=row[1] if row and row[1] else "",
         )

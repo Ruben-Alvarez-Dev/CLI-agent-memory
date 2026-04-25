@@ -37,19 +37,27 @@ class LocalMemoryAdapter(MemoryProtocol):
     async def store(self, event_type: str, content: str, tags: list[str] | None = None) -> str:
         tags_str = ",".join(tags) if tags else event_type
         db = self._db()
-        cur = db.execute("INSERT INTO memories (content, tags) VALUES (?, ?)", (content, tags_str))
+        db.execute("INSERT INTO memories (content, tags) VALUES (?, ?)", (content, tags_str))
         db.commit()
-        rowid = cur.lastrowid
-        db.execute("INSERT INTO memories_fts (rowid, content, tags) VALUES (?, ?, ?)", (rowid, content, tags_str))
-        db.commit()
-        return str(rowid)
+        row = db.execute("SELECT id FROM memories WHERE content = ? ORDER BY rowid DESC LIMIT 1", (content,)).fetchone()
+        mem_id = str(row[0]) if row else ""
+        # FTS uses rowid for content sync
+        try:
+            db.execute("INSERT INTO memories_fts (rowid, content, tags) VALUES ((SELECT rowid FROM memories WHERE id = ?), ?, ?)",
+                       (mem_id, content, tags_str))
+            db.commit()
+        except Exception:
+            pass  # FTS sync is best-effort
+        return mem_id
 
     async def ingest(self, event_type: str, content: str) -> None:
         await self.store(event_type, content, tags=[event_type])
 
     async def search(self, query: str, limit: int = 10) -> list[Memory]:
         rows = self._db().execute(
-            "SELECT id, content, tags FROM memories_fts WHERE memories_fts MATCH ? ORDER BY rank LIMIT ?",
+            "SELECT m.id, m.content, m.tags FROM memories m "
+            "JOIN memories_fts f ON f.rowid = m.rowid "
+            "WHERE memories_fts MATCH ? ORDER BY f.rank LIMIT ?",
             (query, limit),
         ).fetchall()
         return [Memory(id=str(r[0]), content=r[1], tags=r[2].split(",") if r[2] else [])

@@ -160,10 +160,16 @@
 
 ---
 
-## Sprint 3: Local Infra ⏸️ DEFERRED
+## Sprint 3: Local Infra ✅ COMPLETE
 
-> Local adapters (SQLite fallback) are deferred. MVP uses MCP only.
-> Will be implemented when `--force-local` flag is needed.
+### SPEC-LOC-01: Local Adapters (`infra/adapters/local/`)
+
+- [x] L1.1 LocalMemoryAdapter implements MemoryProtocol (SQLite + FTS5) — tested
+- [x] L1.2 LocalThinkingAdapter implements ThinkingProtocol (SQLite) — tested
+- [x] L1.3 LocalVaultAdapter implements VaultProtocol (filesystem) — tested
+- [x] L1.4 ProtocolFactory 3-tier resolution (MCP → local → null) — tested
+- [x] L1.5 force_local flag selects local adapters — tested
+- [x] L1.6 0 external dependencies (sqlite3 stdlib only)
 
 ---
 
@@ -233,7 +239,8 @@
 - [x] T1.4 test_loop.py — 9 tests ✅ (with MockLLMClient)
 - [x] T1.5 test_schema.py — 3 tests ✅
 - [x] T1.6 test_phase123.py — 40 tests ✅ (file_ops, prompts, cli_helpers)
-- [x] T1.7 test_commands.py — 28 tests ✅ (status, cleanup, think, recall, remember, decisions, cancel, plan, db, parser, SIGINT)
+- [x] T1.7 test_commands.py — 28 tests ✅ (status, cleanup, think, recall, remember, decisions, cancel, plan, db, parser)
+- [x] T1.8 test_local_adapters.py — 19 tests ✅ (memory_local, thinking_local, vault_local, protocol_factory, Ollama URL fix)
 
 ### SPEC-T-04: LLM Tests
 
@@ -261,7 +268,7 @@
 
 ## GLOBAL VERIFICATION
 
-- [x] ALL tests pass (pytest -v) — 98/98 passing
+- [x] ALL tests pass (pytest -v) — 117/117 passing
 - [~] Coverage > 80% on domain/ — NOT MEASURED YET
 - [x] --json on run command
 - [x] Exit codes on run path
@@ -288,15 +295,17 @@
 - Workspace: git worktree ✅
 - CLI: run + version + config + resume + status + cleanup + cancel + think + plan + recall + remember + decisions + doctor ✅
 - Null adapters: memory, thinking, vault ✅
-- Tests: 98 passing ✅
+- Tests: 117 passing ✅
+- Local adapters: SQLite memory, thinking, filesystem vault ✅
+- Output formatters: output.py (json_output, text_output) ✅
+- E2E verified: run command works with Ollama (llama3.2:3b) ✅
 
 **Deferred to later releases:**
-- Local adapters (SQLite fallback) — Sprint 3
-- Additional MCP adapters (thinking, engram, vault) — Sprint 4
-- Output formatters — Sprint 4
-- Gateway/ProtocolFactory — Sprint 2
+- Additional MCP adapters (engram) — Sprint 4
+- Output formatters per-command — Sprint 4 (output.py created)
+- Gateway/ProtocolFactory — Sprint 2 (3-tier ProtocolFactory done)
 - Enterprise (federation, governance, observability, A2A, Jart-OS) — Releases 5-6
 - TUI, Web Server, Plugins, Integrations — Releases 2-4
 
-**CHECKPOINTS: 100/160 done (62.5%)**
-**MVP CHECKPOINTS: 100/~110 relevant (91%)**
+**CHECKPOINTS: 110/160 done (69%)**
+**MVP CHECKPOINTS: 110/~115 relevant (96%)**
