@@ -327,13 +327,17 @@ export const BackpackOrchestrator: Plugin = async (ctx) => {
         }
       }
 
-      // Session idle — trigger dream heartbeat to check consolidation thresholds
+      // Session idle — trigger dream heartbeat + background verification
       if (event.type === "session.idle") {
         const sessionId = (event.properties as any)?.sessionID
         if (sessionId && !subAgentSessions.has(sessionId)) {
           backpackPost("/api/heartbeat-dream", {
             agent_id: "default",
             turn_count: 1,
+          })
+          // v1.4: Background verification of stale memories during idle time
+          backpackPost("/api/verify-memories", {
+            scope: project,
           })
         }
       }
