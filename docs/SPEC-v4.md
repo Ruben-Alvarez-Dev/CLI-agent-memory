@@ -3,10 +3,10 @@
 > **NOTE**: Historical spec under old name "Ruffae". Renamed to "CLI-agent-memory" on 2026-04-19.
 > SUPERSEDED by SPEC-v5.
 
-**Versión**: 4.0  
-**Fecha**: 2026-04-19  
-**Estado**: DRAFT — Full Feature Set  
-**Principio**: El orquestador de coding autónomo más completo del ecosistema open source.
+**Version**: 4.0  
+**Date**: 2026-04-19  
+**Status**: DRAFT — Full Feature Set  
+**Principle**: The most complete autonomous coding orchestrator in the open source ecosystem.
 
 ---
 
@@ -15,7 +15,7 @@
 ```
 TIER 1 — CORE (Sprint 1-3)         Estado    Horas
 ──────────────────────────────────────────────────
-Agent-agnóstico (CLI/HTTP/RPC)      SPEC      3h
+Agent-agnostic (CLI/HTTP/RPC)      SPEC      3h
 State machine (PLANNING→DONE)       SPEC      2h
 Git worktree isolation              SPEC      1.5h
 Stagnation detection                SPEC      1h
@@ -55,7 +55,7 @@ Docker sandbox                      SPEC      2h
 Plugin system                       SPEC      2h
 ── SUBTOTAL ADVANCED:                          ~13h
 
-TOTAL ESTIMADO: ~43h, ~3,500 líneas
+TOTAL ESTIMATED: ~43h, ~3,500 lines
 ```
 
 ---
@@ -70,9 +70,9 @@ TOTAL ESTIMADO: ~43h, ~3,500 líneas
 
 ### F-INT-1: Task Decomposition — Descomponer PRDs
 
-**Problema**: Un PRD grande ("Rebuild the auth system") es imposible para un agente en una sesión.
+**Problem**: A large PRD ("Rebuild the auth system") is impossible for an agent in one session.
 
-**Solución**: Ruffae descompone automáticamente un PRD en subtareas ejecutables.
+**Solution**: Ruffae automatically decomposes a PRD into executable subtasks.
 
 ```bash
 ruffae decompose --from-file PRD.md --repo ./app
@@ -101,7 +101,7 @@ Task: "Rebuild auth system"
 │   Phase D: [5]                    (sequential, needs 3+4)
 ```
 
-**Implementación**: El `decompose` usa el agente configurado para generar la descomposición. Luego ejecuta el DAG de dependencias.
+**Implementation**: The `decompose` uses the configured agent to generate the decomposition. Then executes the dependency DAG.
 
 ```python
 class TaskGraph:
@@ -120,15 +120,15 @@ class TaskGraph:
 - Detecta dependencias entre subtareas
 - Ejecuta en paralelo cuando es posible
 - Cada subtarea tiene su propio worktree
-- < 150 líneas para TaskGraph
+- < 150 lines para TaskGraph
 
 ---
 
-### F-INT-2: Human-in-the-Loop — Aprobación humana
+### F-INT-2: Human-in-the-Loop — Human Approval
 
-**Problema**: No siempre quieres que corra 100% autónomo. A veces quieres aprobar antes de ciertas acciones.
+**Problem**: You do not always want it to run 100% autonomously. Sometimes you want to approve before certain actions.
 
-**Solución**: Modo interactivo con puntos de aprobación configurables.
+**Solution**: Interactive mode with configurable approval points.
 
 ```toml
 # ruffae.toml
@@ -136,18 +136,18 @@ class TaskGraph:
 [hil]
 # Puntos donde Ruffae se detiene y pregunta
 approval_points = [
-    "after_planning",      # Mostrar PLAN.md y preguntar: ¿continuar?
-    "before_verification", # Mostrar diff y preguntar: ¿ejecutar tests?
-    "on_stagnation",       # Preguntar qué hacer cuando se atasca
+    "after_planning",      # Show PLAN.md and ask: continue?
+    "before_verification", # Show diff and ask: run tests?
+    "on_stagnation",       # Ask what to do when stuck
 ]
 
-# Límites que requieren aprobación
-max_lines_without_approval = 200   # Si el diff > 200 líneas → preguntar
+# Limits requiring approval
+max_lines_without_approval = 200   # Si el diff > 200 lines → preguntar
 max_files_without_approval = 10   # Si toca > 10 archivos → preguntar
 ```
 
 ```bash
-# Modo interactivo (pide aprobación en puntos configurados)
+# Interactive mode (asks approval at configured points)
 ruffae run "Add OAuth" --interactive --repo ./app
 
 # Modo fully autonomous (sin preguntar nada)
@@ -182,11 +182,11 @@ ruffae run "Add OAuth" --plan-only --repo ./app
 ```
 
 **AC-F-INT-2**:
-- Puntos de aprobación configurables
-- Mostrar diff antes/después de cada fase
+- Configurable approval points
+- Show diff before/after each phase
 - Opciones: approve, reject, edit plan, skip, quit
 - Funciona en terminal con input() y en API con callback
-- < 100 líneas adicionales en loop.py
+- < 100 lines additional in loop.py
 
 ---
 
@@ -219,15 +219,15 @@ model = "qwen3.5:9b"
 
 ### F-COL-1: PR Auto-Generation
 
-**Problema**: Después de que Ruffae completa una tarea, tienes un worktree con cambios. Falta crear el PR.
+**Problem**: After Ruffae completes a task, you have a worktree with changes. Missing: creating the PR.
 
-**Solución**: Auto-generar PR con título, descripción, y labels.
+**Solution**: Auto-generate PR with title, description, and labels.
 
 ```bash
 ruffae pr <task-id> --repo ./app --platform github
 ```
 
-**Genera automáticamente**:
+**Auto-generates**:
 
 ```markdown
 ## PR: Add JWT authentication to auth module
@@ -259,18 +259,18 @@ Implement JWT-based authentication for the API endpoints.
 
 **AC-F-COL-1**:
 - Soporta GitHub (`gh pr create`) y GitLab (`mr create`)
-- Descripción generada del audit trail
-- Labels automáticos del scope de archivos
+- Description generated from audit trail
+- Automatic labels from file scope
 - Assignee configurable
-- < 100 líneas
+- < 100 lines
 
 ---
 
 ### F-COL-2: Commit Messages
 
-**Problema**: Los agentes generan commits horribles ("fix", "update", "changes").
+**Problem**: Los agentes generan commits horribles ("fix", "update", "changes").
 
-**Solución**: Generar conventional commits con contexto.
+**Solution**: Generate conventional commits with context.
 
 ```bash
 ruffae commit <task-id> --repo ./app
@@ -289,15 +289,15 @@ feat(auth): add JWT token generation and validation
 Task: abc123 | Agent: aider → pi | 4 iterations
 ```
 
-**AC-F-COL-2**: Conventional commits. Scope del path. Body del audit. < 60 líneas.
+**AC-F-COL-2**: Conventional commits. Path scope. Audit body. < 60 lines.
 
 ---
 
 ### F-COL-3: GitHub Issues Integration
 
-**Problema**: Las tareas vienen de issues. Tienes que copiar/pegar.
+**Problem**: Las tareas vienen de issues. Tienes que copiar/pegar.
 
-**Solución**: Ruffae lee issues y escribe resultados.
+**Solution**: Ruffae reads issues and writes results.
 
 ```bash
 # Ejecutar tarea desde un issue
@@ -315,15 +315,15 @@ auto_close = false         # Cerrar issue al completar
 auto_label = ["ruffae", "auto-generated"]
 ```
 
-**AC-F-COL-3**: GitHub API via `gh` CLI. Leer issue, comentar, label. < 80 líneas.
+**AC-F-COL-3**: GitHub API via `gh` CLI. Read issue, comment, label. < 80 lines.
 
 ---
 
 ### F-COL-4: Notifications
 
-**Problema**: No sabes cuándo termina una tarea larga.
+**Problem**: You do not know when a long task finishes.
 
-**Solución**: Notificaciones configurables.
+**Solution**: Configurable notifications.
 
 ```toml
 [notifications]
@@ -353,7 +353,7 @@ url = "https://internal.example.com/ruffae"
 events = ["*"]
 ```
 
-**Payload estándar**:
+**Standard Payload**:
 
 ```json
 {
@@ -371,15 +371,15 @@ events = ["*"]
 }
 ```
 
-**AC-F-COL-4**: Genérico — Slack, Discord, email, webhook custom. Template de mensaje configurable. < 80 líneas.
+**AC-F-COL-4**: Generic — Slack, Discord, email, custom webhook. Configurable message template. < 80 lines.
 
 ---
 
 ### F-COL-5: Web Dashboard
 
-**Problema**: CLI es genial para devs, pero managers/teams quieren ver estado.
+**Problem**: CLI es genial para devs, pero managers/teams quieren ver estado.
 
-**Solución**: Dashboard web minimalista.
+**Solution**: Minimalist web dashboard.
 
 ```bash
 ruffae dashboard --port 8080
@@ -412,7 +412,7 @@ ruffae dashboard --port 8080
 ╚══════════════════════════════════════════════════════╝
 ```
 
-**AC-F-COL-5**: HTML + SSE para real-time. Mismo puerto que Agent Protocol. < 200 líneas.
+**AC-F-COL-5**: HTML + SSE for real-time. Same port as Agent Protocol. < 200 lines.
 
 ---
 
@@ -420,9 +420,9 @@ ruffae dashboard --port 8080
 
 ### F-ADV-1: Agent Benchmarking & Ranking
 
-**Problema**: No sabes qué agente es mejor para qué tipo de tarea.
+**Problem**: You do not know which agent is better for which task type.
 
-**Solución**: Ruffae trackea métricas por agente y genera rankings.
+**Solution**: Ruffae tracks metrics per agent and generates rankings.
 
 ```bash
 ruffae stats --repo ./app
@@ -463,19 +463,19 @@ RECOMMENDATION:
 }
 ```
 
-**AC-F-ADV-1**: SQLite local para stats. Ranking por tipo de tarea. Recomendación automática. < 120 líneas.
+**AC-F-ADV-1**: Local SQLite for stats. Ranking by task type. Automatic recommendation. < 120 lines.
 
 ---
 
 ### F-ADV-2: Dynamic Agent Selection
 
-**Problema**: Tienes que elegir el agente manualmente.
+**Problem**: Tienes que elegir el agente manualmente.
 
-**Solución**: Ruffae elige automáticamente el mejor agente para cada tarea.
+**Solution**: Ruffae automatically chooses the best agent for each task.
 
 ```toml
 [agent]
-type = "auto"  # ← NUEVO: selección automática
+type = "auto"  # ← NEW: automatic selection
 ```
 
 **Algoritmo**:
@@ -486,7 +486,7 @@ def select_best_agent(task_description: str, stats: AgentStats) -> Agent:
     task_type = classify_task(task_description)
     # "bug_fix" | "feature" | "refactor" | "tests" | "docs" | "config"
     
-    # 2. Buscar en stats qué agente tiene mejor success rate para ese tipo
+    # 2. Look up stats for which agent has best success rate for that type
     best = stats.get_best_agent(task_type)
     
     # 3. Si no hay datos suficientes (< 3 tasks), usar default
@@ -496,7 +496,7 @@ def select_best_agent(task_description: str, stats: AgentStats) -> Agent:
     return best.agent
 ```
 
-**Clasificación de tarea** (sin LLM, heurística):
+**Task Classification** (no LLM, heuristic):
 
 ```python
 TASK_PATTERNS = {
@@ -509,15 +509,15 @@ TASK_PATTERNS = {
 }
 ```
 
-**AC-F-ADV-2**: Sin LLM para clasificar (heurística < 1ms). Stats de F-ADV-1. Fallback a default. < 80 líneas.
+**AC-F-ADV-2**: No LLM for classification (heuristic < 1ms). Stats from F-ADV-1. Fallback to default. < 80 lines.
 
 ---
 
 ### F-ADV-3: Cost Tracking
 
-**Problema**: No sabes cuánto cuesta cada tarea en tokens/dinero.
+**Problem**: You do not know how much each task costs in tokens/money.
 
-**Solución**: Tracking automático con costos estimados.
+**Solution**: Automatic tracking with estimated costs.
 
 ```bash
 ruffae cost --repo ./app --period 7d
@@ -548,15 +548,15 @@ cost_per_1k_input = 0.003     # $0.003 per 1K input tokens
 cost_per_1k_output = 0.015    # $0.015 per 1K output tokens
 ```
 
-**AC-F-ADV-3**: SQLite. Reporte por tarea, agente, periodo. Recomendaciones de ahorro. < 80 líneas.
+**AC-F-ADV-3**: SQLite. Reporte por tarea, agente, periodo. Recomendaciones de ahorro. < 80 lines.
 
 ---
 
 ### F-ADV-4: Replay Mode
 
-**Problema**: Una tarea falló y quieres entender paso a paso qué pasó.
+**Problem**: A task failed and you want to understand step by step what happened.
 
-**Solución**: Reproducir la ejecución desde el audit trail.
+**Solution**: Reproduce the execution from the audit trail.
 
 ```bash
 # Replay interactivo (avanza paso a paso)
@@ -581,15 +581,15 @@ ruffae replay <task-id> --show-diffs --repo ./app
 ╰──────────────────────────────────────────────────────╯
 ```
 
-**AC-F-ADV-4**: Lee audit JSONL. Muestra cada paso con diff. < 100 líneas.
+**AC-F-ADV-4**: Lee audit JSONL. Muestra cada paso con diff. < 100 lines.
 
 ---
 
 ### F-ADV-5: Secret Scanning
 
-**Problema**: Los agentes pueden introducir secrets en el código (API keys, passwords).
+**Problem**: Agents can introduce secrets into the code (API keys, passwords).
 
-**Solución**: Escanear automáticamente después de cada iteración.
+**Solution**: Automatically scan after each iteration.
 
 ```python
 SECRET_PATTERNS = [
@@ -603,15 +603,15 @@ SECRET_PATTERNS = [
 ]
 ```
 
-**AC-F-ADV-5**: Regex scanning post-diff. Auto-revert si detecta secret. < 50 líneas.
+**AC-F-ADV-5**: Regex scanning post-diff. Auto-revert si detecta secret. < 50 lines.
 
 ---
 
 ### F-ADV-6: Docker Sandbox
 
-**Problema**: Worktrees aíslan el código, pero el agente puede ejecutar comandos peligrosos (`rm -rf /`, `curl malware`).
+**Problem**: Worktrees isolate the code, but the agent can execute dangerous commands (`rm -rf /`, `curl malware`).
 
-**Solución**: Ejecutar el agente dentro de un container.
+**Solution**: Ejecutar el agente dentro de un container.
 
 ```toml
 [sandbox]
@@ -629,15 +629,15 @@ readonly_mounts = ["/usr", "/lib"]
 ruffae run "Fix bug" --sandbox docker --repo ./app
 ```
 
-**AC-F-ADV-6**: Docker SDK Python. Volúmenes read-write solo para worktree. Sin red. < 100 líneas.
+**AC-F-ADV-6**: Docker SDK Python. Read-write volumes only for worktree. No network. < 100 lines.
 
 ---
 
 ### F-ADV-7: Plugin System
 
-**Problema**: Cada equipo tiene necesidades diferentes. No puedes meter todo en core.
+**Problem**: Cada equipo tiene necesidades diferentes. No puedes meter todo en core.
 
-**Solución**: Sistema de plugins como pi.
+**Solution**: Sistema de plugins como pi.
 
 ```python
 # plugins/my_plugin.py
@@ -647,7 +647,7 @@ class MyPlugin(RuffaePlugin):
     
     @hook("after_coding")
     async def run_custom_checks(self, worktree: Path, ctx: HookContext):
-        """Correr checks custom después de cada iteración de coding."""
+        """Run custom checks after each coding iteration."""
         result = subprocess.run(["my-custom-linter", worktree])
         if result.returncode != 0:
             return HookResult(block=True, message="Custom linter failed")
@@ -663,12 +663,12 @@ class MyPlugin(RuffaePlugin):
 
 | Hook | Cuando | Puede bloquear? |
 |------|--------|----------------|
-| `before_planning` | Antes de planificar | Sí |
-| `after_planning` | Después de planificar | Sí |
-| `before_coding` | Antes de cada iteración | Sí |
-| `after_coding` | Después de cada iteración | Sí |
-| `before_verification` | Antes de tests | Sí |
-| `after_verification` | Después de tests | Sí |
+| `before_planning` | Before planning | Yes |
+| `after_planning` | After planning | Yes |
+| `before_coding` | Before each iteration | Yes |
+| `after_coding` | After each iteration | Yes |
+| `before_verification` | Before tests | Yes |
+| `after_verification` | After tests | Yes |
 | `on_stagnation` | Cuando detecta estancamiento | No |
 | `on_guardrail_violation` | Cuando viola guardrails | No |
 | `task_completed` | Tarea completada | No |
@@ -680,7 +680,7 @@ class MyPlugin(RuffaePlugin):
 dirs = ["./ruffae-plugins/", "~/.ruffae/plugins/"]
 ```
 
-**AC-F-ADV-7**: Protocol-based. 10 hooks. Blocking vs informational. < 80 líneas core.
+**AC-F-ADV-7**: Protocol-based. 10 hooks. Blocking vs informational. < 80 lines core.
 
 ---
 
@@ -703,11 +703,11 @@ ruffae parallel \
 
 ```toml
 [execution]
-max_parallel = 4          # Max worktrees simultáneos
+max_parallel = 4          # Max simultaneous worktrees
 merge_strategy = "rebase" # "rebase" | "merge" | "manual"
 ```
 
-**AC-F-ADV-8**: asyncio semaphore para paralelismo. Merge automático o manual. < 80 líneas.
+**AC-F-ADV-8**: asyncio semaphore for parallelism. Automatic or manual merge. < 80 lines.
 
 ---
 
@@ -743,7 +743,7 @@ cost_per_1k_output = 0.0
 [workspace]
 test_command = "pytest"
 worktree_dir = ".worktrees"
-auto_commit = true              # Auto-commit después de cada iteración
+auto_commit = true              # Auto-commit after each iteration
 commit_style = "conventional"   # "conventional" | "simple" | "detailed"
 
 # ── Loop ──────────────────────────────────────────
@@ -755,7 +755,7 @@ auto_snapshot = true
 # ── Guardrails ────────────────────────────────────
 [guardrails]
 protected = [".env*", "*.secret", "*.key", "docker-compose.prod.yml"]
-scope = []                      # Vacío = todo permitido (excepto protected)
+scope = []                      # Empty = everything allowed (except protected)
 scan_secrets = true             # Escanear secrets en diffs
 
 # ── Quality Gates ─────────────────────────────────
@@ -843,7 +843,7 @@ cors_origins = ["*"]
 ## COMANDOS CLI COMPLETOS
 
 ```bash
-# ── Ejecución ──
+# ── Execution ──
 ruffae run <description> [options]
 ruffae run --from-file <path>
 ruffae run --from-issue <number>
@@ -852,7 +852,7 @@ ruffae run --plan-only          # Solo planifica, no ejecuta
 ruffae run --interactive        # Human-in-the-loop
 ruffae run --dry-run            # Simular sin ejecutar
 
-# ── Gestión ──
+# ── Management ──
 ruffae resume <task-id>
 ruffae status [--repo <path>]
 ruffae rollback <task-id> --to <snapshot>
@@ -864,14 +864,14 @@ ruffae pr <task-id> [--platform github|gitlab]
 ruffae commit <task-id>
 ruffae diff <task-id>           # Ver diff completo
 
-# ── Análisis ──
+# ── Analysis ──
 ruffae stats [--period 30d]
 ruffae cost [--period 7d]
 ruffae replay <task-id>
 ruffae audit <task-id> [--format json|text]
 
 # ── Benchmarking ──
-ruffae bench <task-id> --agents "aider,pi,claude"  # Ejecutar con múltiples agentes
+ruffae bench <task-id> --agents "aider,pi,claude"  # Run with multiple agents
 ruffae rank                      # Ver ranking de agentes
 
 # ── Config ──
@@ -920,7 +920,7 @@ RUFFAE SYSTEM CHECK
 
 | Feature | Ruffae | Devin ($500/mes) | SWE-agent | Aider | Claude Code |
 |---------|--------|-------------------|-----------|-------|-------------|
-| Agent-agnóstico | ✅ Cualquiera | ❌ Propio | ❌ Propio | ❌ Propio | ❌ Propio |
+| Agent-agnostic | ✅ Cualquiera | ❌ Propio | ❌ Propio | ❌ Propio | ❌ Propio |
 | Worktree isolation | ✅ | ✅ Docker | ❌ | ❌ | ❌ |
 | Guardrails | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Quality gates chain | ✅ | ✅ | Parcial | ❌ | ❌ |
@@ -945,11 +945,11 @@ RUFFAE SYSTEM CHECK
 | Open source | ✅ | ❌ | ✅ | ✅ | ❌ |
 | **Precio** | **Gratis** | **$500/mes** | Gratis | Gratis | Freemium |
 
-**Ruffae es el único orquestador agent-agnóstico con aislamiento, verificación en cadena y benchmarking automático. Y es gratis y local.**
+**Ruffae is the only agent-agnostic orchestrator with isolation, chain verification, and automatic benchmarking. And it is free and local.**
 
 ---
 
-## PLAN DE EJECUCIÓN FINAL
+## FINAL EXECUTION PLAN
 
 ```
 Sprint 1-3: CORE (11h)
@@ -965,8 +965,8 @@ Sprint 8-10: ADVANCED (13h)
   Parallel, benchmarking, dynamic selection, cost, replay,
   secret scanning, Docker sandbox, plugins
 
-TOTAL: ~43h, ~3,500 líneas
+TOTAL: ~43h, ~3,500 lines
 ```
 
 **Prioridad**: Core → Intelligence → Collaboration → Advanced
-Cada tier es funcional por sí solo. No necesitas los 4 para tener valor.
+Each tier is functional on its own. You do not need all 4 to get value.

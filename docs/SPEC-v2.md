@@ -3,67 +3,67 @@
 > **NOTE**: Historical spec under old name. Renamed to "CLI-agent-memory" on 2026-04-19.
 > SUPERSEDED by SPEC-v5.
 
-**Versión**: 2.0  
-**Fecha**: 2026-04-19  
-**Estado**: DRAFT  
-**Principio**: Agente-agnóstico. Orquestador universal, no agente.
+**Version**: 2.0  
+**Date**: 2026-04-19  
+**Status**: DRAFT  
+**Principle**: Agent-agnostic. Universal orchestrator, not agent.
 
 ---
 
-## 0. INVARIANTES
+## 0. INVARIANTS
 
 ```
-INV-1: domain/ tiene 0 conocimiento de cualquier agente específico
-INV-2: Nuevo agente = 1 archivo nuevo, 0 cambios en domain/
-INV-3: El agente es un plugin intercambiable (DIP estricto)
-INV-4: La memoria es opcional (funciona sin ella)
-INV-5: 3 protocolos soportados: CLI subprocess, HTTP API, stdin/stdout
-INV-6: Cada archivo < 150 líneas
-INV-7: Python 3.12+ con type hints
-INV-8: Spec primero, código después, TDD
+INV-1: domain/ has zero knowledge of any specific agent
+INV-2: New agent = 1 new file, 0 changes in domain/
+INV-3: The agent is a swappable plugin (strict DIP)
+INV-4: Memory is optional (works without it)
+INV-5: 3 supported protocols: CLI subprocess, HTTP API, stdin/stdout
+INV-6: Each file < 150 lines
+INV-7: Python 3.12+ with type hints
+INV-8: Spec first, code later, TDD
 ```
 
 ---
 
-## 1. QUÉ ES RUFFAE
+## 1. WHAT IS RUFFAE
 
-Ruffae es un **orquestador** que toma una tarea, la aísla en un git worktree,
-y la ejecuta autónomamente usando CUALQUIER agente de coding existente o futuro.
+Ruffae is an **orchestrator** that takes a task, isolates it in a git worktree,
+and executes it autonomously using ANY existing or future coding agent.
 
-### Qué HACE Ruffae
+### What Ruffae DOES
 
 | Capacidad | Responsabilidad |
 |-----------|----------------|
-| **Aislamiento** | Git worktree — el repo principal nunca se toca |
-| **Máquina de estados** | PLANNING → CODING → VERIFICATION → DONE/FAILED |
-| **Prevención de bucles** | Detecta estancamiento y resetea contexto |
-| **Persistencia** | Estado sobrevive a reinicios |
-| **Memoria** (opcional) | Recuerda patrones entre tareas |
+ | **Isolation** | Git worktree — the main repo is never touched |
+| **State Machine** | PLANNING → CODING → VERIFICATION → DONE/FAILED |
+| **Loop Prevention** | Detects stagnation and resets context |
+| **Persistence** | State survives restarts |
+| **Memory** (optional) | Remembers patterns across tasks |
 
-### Qué NO hace Ruffae
+### What Ruffae Does NOT Do
 
-- ❌ No llama a LLMs directamente
-- ❌ No tiene system prompts de agente
-- ❌ No gestiona API keys de providers
-- ❌ No reemplaza herramientas de coding
-- ❌ No está atado a ningún agente
+- ❌ Does not call LLMs directly
+- ❌ Has no agent system prompts
+- ❌ Does not manage provider API keys
+- ❌ Does not replace coding tools
+- ❌ Is not tied to any agent
 
-### Analogía
+### Analogy
 
 ```
-Ruffae es al coding como Kubernetes es a los containers:
-  - No corre el código (eso lo hace el agente)
-  - Lo aísla, lo orquesta, lo monitorea, lo reinicia si falla
-  - Es agnóstico al runtime (container=agente)
+Ruffae is to coding what Kubernetes is to containers:
+  - Does not run code (the agent does that)
+  - Isolates, orchestrates, monitors, and restarts if it fails
+  - Is runtime-agnostic (container=agent)
 ```
 
 ---
 
-## 2. ARQUITECTURA
+## 2. ARCHITECTURE
 
 ```
                     ┌─────────────────┐
-                    │   Usuario       │
+                    │   User          │
                     │ ruffae run ...  │
                     └────────┬────────┘
                              │
@@ -101,7 +101,7 @@ Ruffae es al coding como Kubernetes es a los containers:
    └──────────────┘   └──────────────┘   └─────────────┘
 ```
 
-### Estructura de archivos
+### File Structure
 
 ```
 src/ruffae/
@@ -109,42 +109,42 @@ src/ruffae/
 ├── __main__.py              # python -m ruffae
 ├── cli.py                   # Argumentos CLI
 │
-├── domain/                  # ⬅️ LÓGICA PURA — 0 conocimiento de agentes
+├── domain/                  # ⬅️ PURE LOGIC — zero agent knowledge
 │   ├── __init__.py
 │   ├── types.py             # AgentResult, AgentState, Message, etc.
 │   ├── protocol.py          # Agent + MemoryStore (Protocol classes)
-│   ├── loop.py              # RalphLoop (máquina de estados)
+│   ├── loop.py              # RalphLoop (state machine)
 │   ├── stagnation.py        # StagnationMonitor
 │   └── state.py             # TaskContext (persistencia)
 │
-├── agents/                  # ⬅️ ADAPTERS — 1 archivo por agente
+├── agents/                  # ⬅️ ADAPTERS — 1 file per agent
 │   ├── __init__.py          # Factory: create_agent(config)
-│   ├── cli_agent.py         # Cualquier CLI subprocess
-│   ├── http_agent.py        # Cualquier HTTP OpenAI-compatible
+│   ├── cli_agent.py         # Any CLI subprocess
+│   ├── http_agent.py        # Any HTTP OpenAI-compatible
 │   └── pi_agent.py          # Pi RPC mode (stdin/stdout JSONL)
 │
-├── memory/                  # ⬅️ OPCIONAL — 1 archivo por backend
+├── memory/                  # ⬅️ OPTIONAL — 1 file per backend
 │   ├── __init__.py          # Factory: create_memory(config)
 │   ├── mcp_store.py         # MCP Memory Server (HTTP)
-│   ├── file_store.py        # Archivos JSON locales (sin servidor)
+│   ├── file_store.py        # Local JSON files (no server)
 │   └── null_store.py        # No-op (default)
 │
-├── workspace/               # ⬅️ AISLAMIENTO
+├── workspace/               # ⬅️ ISOLATION
 │   ├── __init__.py
 │   └── git_worktree.py      # Git worktree manager
 │
 └── prompts/
     ├── __init__.py
-    └── templates.py         # Prompt templates por fase
+    └── templates.py         # Prompt templates per phase
 ```
 
 ---
 
 ## 3. SPEC: Domain Layer
 
-### SPEC-D1: Tipos
+### SPEC-D1: Types
 
-**Archivo**: `domain/types.py` (~60 líneas)
+**File**: `domain/types.py` (~60 lines)
 
 ```python
 class AgentState(str, Enum):
@@ -159,12 +159,12 @@ class Message(BaseModel):
     content: str
 
 class AgentResult(BaseModel):
-    """Lo que cualquier agente retorna tras una ejecución."""
-    output: str                       # Texto de respuesta
-    files_modified: list[str] = []    # Archivos que tocó
-    success: bool = True              # Terminó sin error
-    error: str = ""                   # Si success=False
-    tokens_used: int = 0              # Opcional, para tracking
+    """What any agent returns after execution."""
+    output: str                       # Response text
+    files_modified: list[str] = []    # Files touched
+    success: bool = True              # Finished without error
+    error: str = ""                   # If success=False
+    tokens_used: int = 0              # Optional, for tracking
 
 class CommandResult(BaseModel):
     success: bool
@@ -184,19 +184,19 @@ class TaskResult(BaseModel):
     error: str = ""
 ```
 
-**AC-D1**: Solo pydantic + stdlib. Serializable. 0 deps externas.
+**AC-D1**: Pydantic + stdlib only. Serializable. 0 external deps.
 
 ---
 
 ### SPEC-D2: Protocol (interfaces)
 
-**Archivo**: `domain/protocol.py` (~40 líneas)
+**File**: `domain/protocol.py` (~40 lines)
 
 ```python
 from typing import Protocol
 
 class Agent(Protocol):
-    """Cualquier agente de coding del mundo."""
+    """Any coding agent in the world."""
     
     async def run(
         self,
@@ -204,45 +204,45 @@ class Agent(Protocol):
         cwd: Path,
         history: list[Message] = [],
     ) -> AgentResult:
-        """Ejecuta un prompt en un directorio de trabajo.
+        """Executes a prompt in a working directory.
         
-        El agente:
-        1. Recibe el prompt + historial de conversación
-        2. Trabaja en cwd (lee, edita, crea archivos)
-        3. Retorna qué hizo y qué archivos modificó
+        The agent:
+        1. Receives the prompt + conversation history
+        2. Works in cwd (reads, edits, creates files)
+        3. Returns what it did and which files it modified
         
-        NO necesita saber nada de worktrees, estados, o memoria.
-        Solo recibe un prompt y un directorio.
+        Does NOT need to know about worktrees, states, or memory.
+        Only receives a prompt and a directory.
         """
         ...
 
 class MemoryStore(Protocol):
-    """Backend de memoria (opcional)."""
+    """Memory backend (optional)."""
     
     async def save(self, key: str, value: str) -> None: ...
     async def recall(self, query: str, limit: int = 5) -> list[str]: ...
 ```
 
-**AC-D2**: 2 interfaces. Agent tiene 1 método. MemoryStore tiene 2 métodos. Protocol (structural typing).
+**AC-D2**: 2 interfaces. Agent has 1 method. MemoryStore has 2 methods. Protocol (structural typing).
 
 ---
 
 ### SPEC-D3: RalphLoop
 
-**Archivo**: `domain/loop.py` (~130 líneas)
+**File**: `domain/loop.py` (~130 lines)
 
 ```python
 class RalphLoop:
     def __init__(
         self,
-        agent: Agent,                    # Cualquier agente
+        agent: Agent,                    # Any agent
         workspace: WorkspaceProvider,     # Git worktree
         memory: MemoryStore | None = None,  # Opcional
         config: LoopConfig = LoopConfig(),
     ): ...
 
     async def run(self, task: str, repo_path: Path) -> TaskResult:
-        """Ejecutar loop completo."""
+        """Execute complete loop."""
         worktree = self.workspace.create(f"ralph/{task_id}")
         state = TaskContext(worktree)
         state.task_description = task
@@ -263,7 +263,7 @@ class RalphLoop:
             prompt=planning_prompt(state.task_description, context),
             cwd=state.worktree_path,
         )
-        # Verificar que PLAN.md existe
+        # Verify that PLAN.md exists
         if (state.worktree_path / "PLAN.md").exists():
             state.transition(CODING)
 
@@ -275,7 +275,7 @@ class RalphLoop:
         )
         stagnation = self.stagnation.record(result.files_modified)
         if stagnation.is_stagnant:
-            self._history = self._history[-2:]  # Reset contexto
+            self._history = self._history[-2:]  # Reset context
             self._history.append(Message(role="system", content=stagnation.intervention))
         if "DONE CODING" in result.output:
             state.transition(VERIFICATION)
@@ -290,33 +290,33 @@ class RalphLoop:
                 await self.memory.save(f"task:{state.task_id}", "completed")
         else:
             state.transition(CODING)
-            # Inyectar error en historial
+            # Inject error into history
 ```
 
 **AC-D3**: 
-- Depende SOLO de Agent protocol y MemoryStore protocol (DIP)
-- Funciona con CUALQUIER agente que implemente `Agent.run()`
-- Memory es opcional (None = sin memoria)
-- < 150 líneas
+- Depends ONLY on Agent protocol and MemoryStore protocol (DIP)
+- Works with ANY agent that implements `Agent.run()`
+- Memory is optional (None = no memory)
+- < 150 lines
 - Testable con MockAgent
 
 ---
 
 ### SPEC-D4: StagnationMonitor
 
-**Archivo**: `domain/stagnation.py` (~70 líneas)
+**File**: `domain/stagnation.py` (~70 lines)
 
-Sin cambios respecto a SPEC v1. Detecta:
-- ≥3 turns sin editar archivos
-- ≥3 veces el mismo error
+No changes from SPEC v1. Detects:
+- ≥3 turns without editing files
+- ≥3 times the same error
 
 ---
 
 ### SPEC-D5: TaskContext
 
-**Archivo**: `domain/state.py` (~50 líneas)
+**File**: `domain/state.py` (~50 lines)
 
-Sin cambios respecto a SPEC v1. Persiste en `.ralph_state.json`.
+No changes from SPEC v1. Persists in `.ralph_state.json`.
 
 ---
 
@@ -324,14 +324,14 @@ Sin cambios respecto a SPEC v1. Persiste en `.ralph_state.json`.
 
 ### SPEC-A1: CLI Agent (universal)
 
-**Archivo**: `agents/cli_agent.py` (~80 líneas)
+**File**: `agents/cli_agent.py` (~80 lines)
 
 ```python
 class CLIAgent:
-    """Cualquier agente que funcione como CLI subprocess.
+    """Any agent that works as a CLI subprocess.
     
-    Funciona con: aider, claude code, copilot, o cualquier tool
-    que acepte un prompt por stdin/argumento y edite archivos.
+    Works with: aider, claude code, copilot, or any tool
+    that accepts a prompt via stdin/argument and edits files.
     """
 
     def __init__(self, command: str, prompt_flag: str = ""):
@@ -347,7 +347,7 @@ class CLIAgent:
         # 5. Retornar AgentResult
 ```
 
-**Configuración de ejemplo**:
+**Example Configuration**:
 
 ```toml
 # ruffae.toml
@@ -372,24 +372,24 @@ type = "null"  # "mcp" | "file" | "null"
 - Funciona con cualquier CLI que acepte prompt
 - Detecta files_modified via `git diff --name-only`
 - Timeout configurable (default 300s)
-- < 80 líneas
+- < 80 lines
 
 ---
 
 ### SPEC-A2: HTTP Agent (OpenAI-compatible)
 
-**Archivo**: `agents/http_agent.py` (~90 líneas)
+**File**: `agents/http_agent.py` (~90 lines)
 
 ```python
 class HTTPAgent:
-    """Cualquier agente via OpenAI-compatible HTTP API.
+    """Any agent via OpenAI-compatible HTTP API.
     
-    Funciona con: LM Studio, Ollama, z.ai, OpenRouter,
-    o cualquier server que hable /v1/chat/completions.
+    Works with: LM Studio, Ollama, z.ai, OpenRouter,
+    or any server that speaks /v1/chat/completions.
     
     NOTA: Este agente NO tiene tools (read, bash, edit).
-    Solo genera texto. Útil para tareas simples o como fallback.
-    Para coding real, usar cli_agent o pi_agent.
+    Only generates text. Useful for simple tasks or as fallback.
+    For real coding, use cli_agent or pi_agent.
     """
 
     def __init__(self, base_url: str, model: str = "", api_key: str = ""): ...
@@ -401,21 +401,21 @@ class HTTPAgent:
 ```
 
 **AC-A2**: 
-- POST /v1/chat/completions estándar
+- POST /v1/chat/completions standard
 - Auto-detecta modelo si model=""
-- < 90 líneas
+- < 90 lines
 
 ---
 
 ### SPEC-A3: Pi Agent (RPC)
 
-**Archivo**: `agents/pi_agent.py` (~100 líneas)
+**File**: `agents/pi_agent.py` (~100 lines)
 
 ```python
 class PiAgent:
     """Pi coding agent via RPC mode (stdin/stdout JSONL).
     
-    El agente más potente: tiene acceso a tools (read, bash, edit, write),
+    The most powerful agent: has access to tools (read, bash, edit, write),
     extensiones, MCP servers (memory), y todos los modelos configurados.
     """
 
@@ -431,17 +431,17 @@ class PiAgent:
 ```
 
 **AC-A3**: 
-- Spawn pi subprocess por cada iteración del loop
+- Spawn pi subprocess for each loop iteration
 - Parsea eventos JSONL (text_delta, tool_execution_end, agent_end)
 - Detecta files_modified de tool calls (write, edit)
 - Limpia subprocess correctamente
-- < 100 líneas
+- < 100 lines
 
 ---
 
 ### SPEC-A4: Agent Factory
 
-**Archivo**: `agents/__init__.py` (~30 líneas)
+**File**: `agents/__init__.py` (~30 lines)
 
 ```python
 def create_agent(config: AgentConfig) -> Agent:
@@ -452,34 +452,34 @@ def create_agent(config: AgentConfig) -> Agent:
         case _        → raise ValueError(f"Unknown agent type: {config.type}")
 ```
 
-**AC-A4**: Añadir agente = añadir 1 case + 1 archivo. 0 cambios en domain/.
+**AC-A4**: Add agent = add 1 case + 1 file. 0 changes in domain/.
 
 ---
 
-## 5. SPEC: Memory Adapters (opcionales)
+## 5. SPEC: Memory Adapters (optional)
 
 ### SPEC-M1: File Store (sin servidor)
 
-**Archivo**: `memory/file_store.py` (~40 líneas)
+**File**: `memory/file_store.py` (~40 lines)
 
 ```python
 class FileMemoryStore:
-    """Memoria local basada en archivos JSON. Sin servidor necesario."""
+    """Local memory based on JSON files. No server required."""
     
     def __init__(self, store_dir: Path): ...
 
     async def save(self, key: str, value: str) -> None:
-        # Escribir a store_dir/{hash(key)}.json
+        # Write to store_dir/{hash(key)}.json
 
     async def recall(self, query: str, limit: int = 5) -> list[str]:
-        # Busqueda simple por texto en todos los archivos
+        # Simple text search across all files
 ```
 
 ---
 
 ### SPEC-M2: MCP Store
 
-**Archivo**: `memory/mcp_store.py` (~60 líneas)
+**File**: `memory/mcp_store.py` (~60 lines)
 
 ```python
 class MCPMemoryStore:
@@ -494,11 +494,11 @@ class MCPMemoryStore:
 
 ### SPEC-M3: Null Store
 
-**Archivo**: `memory/null_store.py` (~15 líneas)
+**File**: `memory/null_store.py` (~15 lines)
 
 ```python
 class NullMemoryStore:
-    """Sin memoria. Siempre retorna vacío."""
+    """No memory. Always returns empty."""
     async def save(self, key, value): pass
     async def recall(self, query, limit=5): return []
 ```
@@ -509,31 +509,31 @@ class NullMemoryStore:
 
 ### SPEC-W1: Git Worktree
 
-**Archivo**: `workspace/git_worktree.py` (~90 líneas)
+**File**: `workspace/git_worktree.py` (~90 lines)
 
-Sin cambios respecto a SPEC v1. Aislamiento via git worktrees.
+No changes from SPEC v1. Isolation via git worktrees.
 
 ---
 
 ## 7. SPEC: CLI
 
-### SPEC-C1: Comandos
+### SPEC-C1: Commands
 
 ```bash
-# Comando principal
+# Main command
 ruffae run "Fix the auth bug" --repo ./myproject
 ruffae run --from-file PRD.md --repo ./myproject
 
-# Con agente específico
+# With specific agent
 ruffae run "Task" --agent cli --command "aider"
 ruffae run "Task" --agent cli --command "claude" --prompt-flag "-p"
 ruffae run "Task" --agent http --url http://localhost:1234 --model qwen3.5:9b
 ruffae run "Task" --agent pi
 
-# Sin memoria (offline)
+# Without memory (offline)
 ruffae run "Task" --no-memory
 
-# Gestión
+# Management
 ruffae resume <task-id>
 ruffae status
 ruffae cleanup --older-than 168
@@ -544,16 +544,16 @@ ruffae config --show
 ### ruffae.toml (config file)
 
 ```toml
-# Configuración por proyecto
+# Per-project configuration
 
 [agent]
 type = "cli"           # "cli" | "http" | "pi"
-command = "aider"      # Solo si type="cli"
+command = "aider"      # Only if type="cli"
 prompt_flag = "--message"
-# base_url = ""        # Solo si type="http"
-# model = ""           # Solo si type="http"
-# api_key = ""         # Solo si type="http", o env var
-# pi_path = "pi"       # Solo si type="pi"
+# base_url = ""        # Only if type="http"
+# model = ""           # Only if type="http"
+# api_key = ""         # Only if type="http", o env var
+# pi_path = "pi"       # Only if type="pi"
 
 [workspace]
 test_command = "pytest"  # "" = auto-detect
@@ -565,15 +565,15 @@ max_stagnation = 3
 
 [memory]
 type = "null"            # "mcp" | "file" | "null"
-# gateway_url = "http://127.0.0.1:3050"  # Solo si type="mcp"
+# gateway_url = "http://127.0.0.1:3050"  # Only if type="mcp"
 # store_dir = ".ruffae/memory"            # Solo si type="file"
 ```
 
 **AC-C1**:
 - `--agent` override config file
-- Auto-detección de test_command
+- Auto-detection of test_command
 - `config --init` genera ruffae.toml interactivo
-- < 150 líneas
+- < 150 lines
 
 ---
 
@@ -607,7 +607,7 @@ tests/
 
 ```python
 class MockAgent:
-    """Agente mock que simula editar archivos."""
+    """Mock agent that simulates file editing."""
     
     def __init__(self, responses: list[AgentResult]):
         self.responses = responses
@@ -616,18 +616,18 @@ class MockAgent:
     async def run(self, prompt, cwd, history=[]):
         result = self.responses[self.call_count]
         self.call_count += 1
-        # Simular escritura de archivos
+        # Simulate file writing
         if result.files_modified:
             for f in result.files_modified:
                 (cwd / f).write_text("# mock content")
         return result
 ```
 
-**AC-T1**: Todos los tests de domain pasan sin agentes reales. Coverage > 80%.
+**AC-T1**: All domain tests pass without real agents. Coverage > 80%.
 
 ---
 
-## 9. PLAN DE EJECUCIÓN
+## 9. EXECUTION PLAN
 
 ```
 Sprint 1: Domain (2h)
@@ -640,7 +640,7 @@ Sprint 1: Domain (2h)
 
 Sprint 2: Loop (1.5h)
   [7] SPEC-D3: loop.py + templates.py
-  [8] Tests loop con MockAgent (máquina de estados completa)
+  [8] Tests loop con MockAgent (complete state machine)
 
 Sprint 3: Agents + Memory (3h)
   [9]  SPEC-A1: cli_agent.py + tests
@@ -656,17 +656,17 @@ Sprint 4: Workspace + CLI (2h)
   [17] SPEC-C1: cli.py + config
   [18] pyproject.toml + entry point
 
-Sprint 5: Integración (1.5h)
-  [19] Test E2E: ruffae run con aider/claude/pi
-  [20] Extracción desde MCP Memory Server
+Sprint 5: Integration (1.5h)
+  [19] E2E Test: ruffae run with aider/claude/pi
+  [20] Extraction from MCP Memory Server
   [21] README.md + docs
 ```
 
-**Total: ~10h, ~1,200 líneas**
+**Total: ~10h, ~1,200 lines**
 
 ---
 
-## 10. DEPENDENCIAS
+## 10. DEPENDENCIES
 
 ```toml
 [project]
@@ -680,33 +680,33 @@ dependencies = [
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 ```
 
-**3 deps runtime**. httpx es la única "externa" real (pydantic es estándar de facto).
+**3 runtime deps**. httpx is the only real "external" one (pydantic is a de facto standard).
 
 ---
 
-## 11. COMPARACIÓN: SPEC v1 vs v2
+## 11. COMPARISON: SPEC v1 vs v2
 
 | Aspecto | SPEC v1 | SPEC v2 |
 |---------|---------|---------|
 | Agentes soportados | 1 (LLM directo) | ∞ (cualquiera) |
 | Protocolos | HTTP API | CLI + HTTP + RPC |
-| Acoplamiento con pi | Ninguno | Ninguno (pi = 1 adapter) |
-| Domain depende de | LLMClient + MemoryClient | Agent (1 método) |
+| Ac coupling with pi | Ninguno | Ninguno (pi = 1 adapter) |
+| Domain depends on | LLMClient + MemoryClient | Agent (1 method) |
 | Interfaces | 3 (LLM, Memory, Workspace) | 3 (Agent, MemoryStore, Workspace) |
 | Archivos infra/llm/ | 5 archivos | ELIMINADO |
-| Archivos agents/ | No existía | 3-4 archivos |
-| Archivos memory/ | 2 | 3 |
-| Líneas estimadas | ~1,650 | ~1,200 |
-| Deps runtime | 3 | 3 |
-| Testable sin servicios | Sí | Sí |
-| Funciona sin servidor | Solo con LM Studio local | Sí (cli_agent + file_store) |
+| agents/ files | Did not exist | 3-4 files |
+| memory/ | 2 | 3 |
+| Estimated lines | ~1,650 | ~1,200 |
+| Runtime deps | 3 | 3 |
+| Testable without services | Yes | Yes |
+| Works without server | Only with local LM Studio | Yes (cli_agent + file_store) |
 
 ---
 
-## 12. EJEMPLOS DE USO
+## 12. USAGE EXAMPLES
 
 ```bash
-# Con Aider (el más simple)
+# With Aider (simplest)
 ruffae run "Add JWT authentication to the auth module" \
   --agent cli --command "aider" --repo ./myapp
 
@@ -714,7 +714,7 @@ ruffae run "Add JWT authentication to the auth module" \
 ruffae run "Refactor the database layer to use repositories" \
   --agent cli --command "claude" --prompt-flag "-p" --repo ./myapp
 
-# Con Pi Agent (el más potente, tiene tools + memory)
+# With Pi Agent (most powerful, has tools + memory)
 ruffae run "Fix all failing tests" \
   --agent pi --repo ./myapp
 
@@ -726,25 +726,25 @@ ruffae run "Explain the auth flow" \
 ruffae run "Implement OAuth2" \
   --agent pi --memory mcp --repo ./myapp
 
-# Sin memoria, sin servidor (máxima portabilidad)
+# No memory, no server (maximum portability)
 ruffae run "Add logging" \
   --agent cli --command "aider" --no-memory --repo ./myapp
 
-# Dry run (ver qué haría)
+# Dry run (see what it would do)
 ruffae run "Fix bug #42" --dry-run --repo ./myapp
 ```
 
 ---
 
-## 13. CRITERIOS DE ÉXITO
+## 13. SUCCESS CRITERIA
 
 ```
-SUCCESS-1: ruffae run con AIDER completa sin intervención humana
-SUCCESS-2: ruffae run con CLAUDE CODE completa sin intervención
-SUCCESS-3: ruffae run con PI AGENT completa sin intervención
+SUCCESS-1: ruffae run with AIDER completes without human intervention
+SUCCESS-2: ruffae run with CLAUDE CODE completes without intervention
+SUCCESS-3: ruffae run with PI AGENT completes without intervention
 SUCCESS-4: Nuevo agente = 1 archivo nuevo, 0 cambios en domain/
-SUCCESS-5: Funciona 100% offline (cli_agent + null_store)
-SUCCESS-6: domain/ tiene 0 imports de agents/ o memory/
-SUCCESS-7: < 1,200 líneas totales
-SUCCESS-8: Coverage > 80% en domain/
+SUCCESS-5: Works 100% offline (cli_agent + null_store)
+SUCCESS-6: domain/ has 0 imports from agents/ or memory/
+SUCCESS-7: < 1,200 total lines
+SUCCESS-8: Coverage > 80% in domain/
 ```

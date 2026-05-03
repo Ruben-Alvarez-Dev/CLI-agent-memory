@@ -3,64 +3,64 @@
 > **NOTE**: Historical spec under old name. Renamed to "CLI-agent-memory" on 2026-04-19.
 > SUPERSEDED by SPEC-v5.
 
-**Versión**: 3.0  
-**Fecha**: 2026-04-19  
-**Estado**: DRAFT  
-**Principio**: Agente-agnóstico + Agent Protocol compatible + Ventaja competitiva real
+**Version**: 3.0  
+**Date**: 2026-04-19  
+**Status**: DRAFT  
+**Principle**: Agent-agnostic + Agent Protocol compatible + Real competitive advantage
 
 ---
 
-## 0. INVARIANTES
+## 0. INVARIANTS
 
 ```
-INV-1: domain/ tiene 0 conocimiento de cualquier agente específico
-INV-2: Nuevo agente = 1 archivo nuevo, 0 cambios en domain/
+INV-1: domain/ has zero knowledge of any specific agent
+INV-2: New agent = 1 new file, 0 changes in domain/
 INV-3: Compatible con Agent Protocol (agentprotocol.ai)
 INV-4: Memoria es opcional (funciona sin ella)
-INV-5: Cada archivo < 150 líneas
-INV-6: Python 3.12+ con type hints
-INV-7: Spec primero, código después, TDD
+INV-5: Each file < 150 lines
+INV-6: Python 3.12+ with type hints
+INV-7: Spec first, code later, TDD
 INV-8: 0 hardcoded paths, 0 hardcoded agent names
 ```
 
 ---
 
-## 1. QUÉ ES RUFFAE
+## 1. WHAT IS RUFFAE
 
-Un **orquestador de coding autónomo** que aísla, controla, protege y verifica
+An **autonomous coding orchestrator** that isolates, controls, protects and verifies
 tareas ejecutadas por CUALQUIER agente de coding.
 
-### Analogía
+### Analogy
 
 ```
-Ruffae : Coding Autónomo :: CI/CD : Deployment
+Ruffae : Autonomous Coding :: CI/CD : Deployment
 
-CI/CD no compila código — orquesta builds, tests, deploys.
-Ruffae no piensa código — orquesta agents, worktrees, verificaciones.
+CI/CD does not compile code — it orchestrates builds, tests, deploys.
+Ruffae does not think code — it orchestrates agents, worktrees, verifications.
 ```
 
 ### Los 3 problemas que Ruffae resuelve
 
-| # | Problema | Solución Ruffae |
+| # | Problem | Ruffae Solution |
 |---|----------|----------------|
 | 1 | **Agentes se van de las manos** — tocan archivos que no deben, borran cosas | Worktree aislado + Guardrails + Scope limitado |
-| 2 | **Agentes se atascan** — repiten errores, no saben cuándo parar | Stagnation detection + Context reset + Max iterations |
-| 3 | **No hay reproducibilidad** — no sabes qué pasó, qué cambió, por qué falló | Audit trail + Snapshots + Artifacts |
+| 2 | **Agents get stuck** — repeat errors, do not know when to stop | Stagnation detection + Context reset + Max iterations |
+| 3 | **No reproducibility** — you do not know what happened, what changed, why it failed | Audit trail + Snapshots + Artifacts |
 
 ---
 
-## 2. ALINEACIÓN CON ESTÁNDARES
+## 2. ALIGNMENT WITH STANDARDS
 
 ### 2.1 Agent Protocol (agentprotocol.ai)
 
-El **Agent Protocol** define una API REST estándar para comunicarse con agentes:
+The **Agent Protocol** defines a standard REST API for communicating with agents:
 - `POST /ap/v1/agent/tasks` → Crear tarea
 - `POST /ap/v1/agent/tasks/{id}/steps` → Ejecutar un paso
 - `GET /ap/v1/agent/tasks/{id}/artifacts` → Listar artefactos producidos
 
 Ruffae implementa este protocolo. Eso significa:
 - Cualquier tool que hable Agent Protocol puede usar Ruffae
-- Ruffae puede compararse con otros agentes en benchmarks estándar (SWE-bench)
+- Ruffae can be compared with other agents on standard benchmarks (SWE-bench)
 - Otros orquestadores pueden delegar tareas a Ruffae
 
 ### 2.2 MCP (Model Context Protocol)
@@ -70,11 +70,11 @@ Ruffae NO es un MCP server, pero puede comunicarse con MCP servers
 
 ### 2.3 OpenAI API
 
-El adapter `http_agent` usa `POST /v1/chat/completions` — el estándar de facto.
+The `http_agent` adapter uses `POST /v1/chat/completions` — the de facto standard.
 
 ### 2.4 Git
 
-Worktrees, diffs, commits, tags — estándar de facto para aislamiento.
+Worktrees, diffs, commits, tags — de facto standard for isolation.
 
 ---
 
@@ -86,7 +86,7 @@ src/ruffae/
 ├── __main__.py
 ├── cli.py                   # CLI + Agent Protocol HTTP server
 │
-├── domain/                  # ⬅️ LÓGICA PURA
+├── domain/                  # ⬅️ PURE LOGIC
 │   ├── types.py             # Task, Step, Artifact, AgentResult
 │   ├── protocol.py          # Agent + MemoryStore + QualityGate interfaces
 │   ├── loop.py              # RalphLoop (state machine)
@@ -110,12 +110,12 @@ src/ruffae/
 │   ├── __init__.py
 │   └── git_worktree.py      # Git worktree + snapshots + guardrails
 │
-├── guardrails/              # ⬅️ PROTECCIÓN (NUEVO)
+├── guardrails/              # ⬅️ PROTECTION (NEW)
 │   ├── __init__.py
-│   ├── scope.py             # Scope limitado (qué archivos puede tocar)
+│   ├── scope.py             # Limited scope (which files it can touch)
 │   └── protect.py           # Archivos protegidos (nunca tocar)
 │
-├── quality/                 # ⬅️ VERIFICACIÓN (NUEVO)
+├── quality/                 # ⬅️ VERIFICATION (NEW)
 │   ├── __init__.py
 │   ├── test_gate.py         # Ejecutar tests
 │   ├── lint_gate.py         # Ejecutar linter
@@ -123,8 +123,8 @@ src/ruffae/
 │
 ├── observability/           # ⬅️ AUDIT (NUEVO)
 │   ├── __init__.py
-│   ├── audit.py             # Log de cada acción del agente
-│   └── snapshot.py          # Git tag en cada fase (rollback fácil)
+│   ├── audit.py             # Log of each agent action
+│   └── snapshot.py          # Git tag at each phase (easy rollback)
 │
 └── prompts/
     ├── __init__.py
@@ -135,12 +135,12 @@ src/ruffae/
 
 ## 4. FEATURES NUEVAS (vs v2)
 
-### F1: GUARDRAILS — Protección de archivos
+### F1: GUARDRAILS — File Protection
 
-**Problema**: Un agente autónomo puede borrar `.env`, tocar `production.config`,
-o modificar archivos que no debería.
+**Problem**: An autonomous agent can delete `.env`, touch `production.config`,
+or modify files it should not.
 
-**Solución**: Dos capas de protección.
+**Solution**: Two layers of protection.
 
 ```toml
 # ruffae.toml
@@ -155,7 +155,7 @@ protected = [
     "**/migrations/**",
 ]
 
-# Solo puede tocar estos archivos (si se define, todo lo demás está prohibido)
+# Can only touch these files (if defined, everything else is forbidden)
 # Si no se define, puede tocar cualquier cosa no protegida
 scope = [
     "src/**",
@@ -163,19 +163,19 @@ scope = [
 ]
 ```
 
-**Implementación**: Después de cada `agent.run()`, verificar `git diff --name-only`
-contra las reglas. Si el agente tocó un archivo protegido → revert + penalty.
+**Implementation**: After each `agent.run()`, verify `git diff --name-only`
+against the rules. If the agent touched a protected file → revert + penalty.
 
 ---
 
-### F2: QUALITY GATES — Verificación en cadena
+### F2: QUALITY GATES — Chain Verification
 
-**Problema**: "Tests pass" no es suficiente. Puede pasar tests y tener:
-- Código que no pasa el linter
-- Código con vulnerabilidades
-- Código que no tiene nada que ver con la tarea
+**Problem**: "Tests pass" no es suficiente. Puede pasar tests y tener:
+- Code that does not pass the linter
+- Code with vulnerabilities
+- Code unrelated to the task
 
-**Solución**: Cadena de verificación configurable.
+**Solution**: Configurable verification chain.
 
 ```python
 class QualityGate(Protocol):
@@ -210,7 +210,7 @@ blocking = false        # Warning, no bloquea
 [[quality_gates]]
 name = "diff_sanity"
 blocking = true         # Verifica que el diff es razonable
-# Check: no más de N líneas cambiadas, no archivos binarios, etc.
+# Check: no more than N lines changed, no binary files, etc.
 ```
 
 **Flujo**:
@@ -230,16 +230,16 @@ VERIFICATION phase:
 
 ---
 
-### F3: SNAPSHOTS — Rollback instantáneo
+### F3: SNAPSHOTS — Instant Rollback
 
-**Problema**: Si el agente hace un desastre en iteración 5, quieres volver a 4.
+**Problem**: If the agent makes a mess in iteration 5, you want to go back to 4.
 
-**Solución**: Git tag automático en cada transición de fase.
+**Solution**: Automatic git tag at each phase transition.
 
 ```
-ralph/task-abc123/planning-1    ← Después de PLANNING
-ralph/task-abc123/coding-3      ← Después de 3ra iteración de CODING
-ralph/task-abc123/verification-1 ← Primera verificación
+ralph/task-abc123/planning-1    ← After PLANNING
+ralph/task-abc123/coding-3      ← After 3rd CODING iteration
+ralph/task-abc123/verification-1 ← First verification
 ```
 
 ```bash
@@ -251,9 +251,9 @@ ruffae rollback <task-id> --to planning-1
 
 ### F4: AUDIT TRAIL — Reproducibilidad
 
-**Problema**: No sabes qué hizo el agente, qué prompt recibió, qué decidió.
+**Problem**: You do not know what the agent did, what prompt it received, what it decided.
 
-**Solución**: Log estructurado de cada acción.
+**Solution**: Structured log of each action.
 
 ```
 .ruffae/audit/{task-id}.jsonl
@@ -271,42 +271,42 @@ Esto permite:
 - Debuggear fallos
 - Medir coste (tokens por tarea)
 - Reproducir problemas
-- Analizar qué agente es mejor para qué tarea
+- Analyze which agent is better for which task
 
 ---
 
-### F5: AGENT PROTOCOL SERVER — API estándar
+### F5: AGENT PROTOCOL SERVER — Standard API
 
-**Problema**: Si Ruffae solo es CLI, no se puede integrar con otros sistemas.
+**Problem**: Si Ruffae solo es CLI, no se puede integrar con otros sistemas.
 
-**Solución**: Modo servidor que expone Agent Protocol.
+**Solution**: Modo servidor que expone Agent Protocol.
 
 ```bash
 # Modo CLI (uso directo)
 ruffae run "Fix bug" --repo ./app
 
-# Modo servidor (integración con otros sistemas)
+# Server mode (integration with other systems)
 ruffae serve --port 8000
 # Ahora otros sistemas pueden:
 #   POST /ap/v1/agent/tasks         → Crear tarea
 #   POST /ap/v1/agent/tasks/{id}/steps  → Ejecutar paso
-#   GET  /ap/v1/agent/tasks/{id}/artifacts → Ver qué produjo
+#   GET  /ap/v1/agent/tasks/{id}/artifacts → See what it produced
 #   GET  /ap/v1/agent/tasks/{id}     → Ver estado
 ```
 
 **Esto permite**:
 - Integrar con CI/CD pipelines
-- Benchmarks automáticos (SWE-bench)
+- Automatic benchmarks (SWE-bench)
 - Dashboard web que monitorea tareas
 - Otros orquestadores que delegan sub-tareas
 
 ---
 
-### F6: PARALLEL TASKS — Ejecución paralela
+### F6: PARALLEL TASKS — Parallel Execution
 
-**Problema**: Un PRD grande se puede descomponer en tareas independientes.
+**Problem**: Un PRD grande se puede descomponer en tareas independientes.
 
-**Solución**: Ejecutar múltiples tareas en paralelo en worktrees separados.
+**Solution**: Execute multiple tasks in parallel in separate worktrees.
 
 ```bash
 # Desde un PRD, descomponer y ejecutar en paralelo
@@ -316,7 +316,7 @@ ruffae run --from-file PRD.md --decompose --parallel 3 --repo ./app
 ```toml
 # ruffae.toml
 [execution]
-max_parallel = 3   # Máximo worktrees simultáneos
+max_parallel = 3   # Maximum simultaneous worktrees
 ```
 
 El loop detecta tareas independientes del PLAN.md y las ejecuta en paralelo.
@@ -325,10 +325,10 @@ El loop detecta tareas independientes del PLAN.md y las ejecuta en paralelo.
 
 ### F7: MULTI-AGENT STRATEGY — Agentes para cada fase
 
-**Problema**: Un agente no es bueno para todo. Aider es bueno codeando,
+**Problem**: Un agente no es bueno para todo. Aider es bueno codeando,
 Claude Code es bueno planeando, pi es bueno con tools.
 
-**Solución**: Asignar agentes diferentes por fase.
+**Solution**: Asignar agentes diferentes por fase.
 
 ```toml
 # ruffae.toml
@@ -357,10 +357,10 @@ model = "qwen3.5:9b"
 
 | Feature | v2 | v3 |
 |---------|----|----|
-| Agent-agnóstico | ✅ | ✅ |
-| Agent Protocol | ❌ | ✅ API REST estándar |
-| Guardrails (protección) | ❌ | ✅ Scope + archivos protegidos |
-| Quality Gates (verificación) | ❌ Tests solo | ✅ Tests + lint + typecheck + diff sanity |
+| Agent-agnostic | ✅ | ✅ |
+| Agent Protocol | ❌ | ✅ Standard REST API |
+| Guardrails (protection) | ❌ | ✅ Scope + archivos protegidos |
+| Quality Gates (verification) | ❌ Tests solo | ✅ Tests + lint + typecheck + diff sanity |
 | Snapshots (rollback) | ❌ | ✅ Git tags por fase |
 | Audit trail | ❌ | ✅ JSONL completo |
 | Modo servidor | ❌ | ✅ `ruffae serve` |
@@ -375,7 +375,7 @@ model = "qwen3.5:9b"
 
 ### SPEC-G1: Guardrails
 
-**Archivo**: `guardrails/scope.py` (~50 líneas), `guardrails/protect.py` (~40 líneas)
+**File**: `guardrails/scope.py` (~50 lines), `guardrails/protect.py` (~40 lines)
 
 ```python
 class Guardrails:
@@ -393,16 +393,16 @@ class Guardrails:
 class GuardrailResult(BaseModel):
     ok: bool
     violations: list[str]      # ["MODIFIED .env.production (protected)"]
-    auto_reverted: list[str]   # Archivos revertidos automáticamente
+    auto_reverted: list[str]   # Automatically reverted files
 ```
 
-**AC-G1**: fnmatch para patterns. Auto-revert de violaciones. < 90 líneas total.
+**AC-G1**: fnmatch para patterns. Auto-revert de violaciones. < 90 lines total.
 
 ---
 
 ### SPEC-Q1: Quality Gates
 
-**Archivo**: `quality/test_gate.py` (~40), `quality/lint_gate.py` (~30), `quality/diff_gate.py` (~50)
+**File**: `quality/test_gate.py` (~40), `quality/lint_gate.py` (~30), `quality/diff_gate.py` (~50)
 
 ```python
 class TestGate:
@@ -414,19 +414,19 @@ class TestGate:
 class DiffGate:
     """Verifica que el diff es razonable."""
     async def check(self, worktree: Path) -> GateResult:
-        # 1. No más de max_lines_changed (default: 500)
+        # 1. No more than max_lines_changed (default: 500)
         # 2. No archivos binarios
         # 3. No archivos fuera del scope del plan
         # 4. Cada archivo changed tiene que ver con la tarea
 ```
 
-**AC-Q1**: Configurable via TOML. Blocking vs warning. < 120 líneas total.
+**AC-Q1**: Configurable via TOML. Blocking vs warning. < 120 lines total.
 
 ---
 
 ### SPEC-O1: Audit Trail
 
-**Archivo**: `observability/audit.py` (~40 líneas)
+**File**: `observability/audit.py` (~40 lines)
 
 ```python
 class AuditLogger:
@@ -439,13 +439,13 @@ class AuditLogger:
         """Tokens total, files modified, duration, cost estimate."""
 ```
 
-**AC-O1**: JSONL append-only. < 40 líneas. Opcional (solo si log_dir configurado).
+**AC-O1**: JSONL append-only. < 40 lines. Opcional (solo si log_dir configurado).
 
 ---
 
 ### SPEC-O2: Snapshots
 
-**Archivo**: `observability/snapshot.py` (~30 líneas)
+**File**: `observability/snapshot.py` (~30 lines)
 
 ```python
 def create_snapshot(worktree: Path, task_id: str, phase: str, iteration: int):
@@ -458,13 +458,13 @@ def rollback_to(worktree: Path, snapshot: Snapshot):
     """git checkout al snapshot."""
 ```
 
-**AC-O2**: Git tags. Listar + rollback. < 30 líneas.
+**AC-O2**: Git tags. Listar + rollback. < 30 lines.
 
 ---
 
 ### SPEC-S1: Agent Protocol Server
 
-**Archivo**: `cli.py` (añadir modo serve) + nuevo `server.py` (~100 líneas)
+**File**: `cli.py` (add serve mode) + new `server.py` (~100 lines)
 
 ```bash
 ruffae serve --port 8000
@@ -480,7 +480,7 @@ GET    /ap/v1/agent/tasks/{id}/artifacts → Archivos producidos
 DELETE /ap/v1/agent/tasks/{id}         → Cancelar tarea
 ```
 
-**AC-S1**: Compatible con OpenAPI spec de agentprotocol.ai. Starlette (ya disponible). < 100 líneas.
+**AC-S1**: Compatible con OpenAPI spec de agentprotocol.ai. Starlette (ya disponible). < 100 lines.
 
 ---
 
@@ -557,7 +557,7 @@ port = 8000
 
 ---
 
-## 8. PLAN DE EJECUCIÓN ACTUALIZADO
+## 8. UPDATED EXECUTION PLAN
 
 ```
 Sprint 1: Domain Core (2h)
@@ -588,12 +588,12 @@ Sprint 5: CLI + Server (2h)
   [17] server.py (Agent Protocol)
   [18] pyproject.toml + entry point
 
-Sprint 6: Integración (1.5h)
+Sprint 6: Integration (1.5h)
   [19] Test E2E multi-agente
-  [20] Extracción desde MCP Memory Server
+  [20] Extraction from MCP Memory Server
   [21] README.md + docs
 
-TOTAL: ~13h, ~1,800 líneas
+TOTAL: ~13h, ~1,800 lines
 ```
 
 ---
@@ -601,13 +601,13 @@ TOTAL: ~13h, ~1,800 líneas
 ## 9. EJEMPLOS DE USO
 
 ```bash
-# ── Básico ──
+# ── Basic ──
 ruffae run "Add JWT auth" --repo ./app
 
-# ── Con agente específico ──
+# ── With specific agent ──
 ruffae run "Fix bug #42" --agent cli --command "aider" --repo ./app
 
-# ── Con protección ──
+# ── With protection ──
 ruffae run "Refactor DB" --repo ./app \
   --protect ".env*,migrations/**" \
   --scope "src/db/**,tests/db/**"
@@ -626,10 +626,10 @@ ruffae run "Implement OAuth2" --repo ./app
 
 # ── Rollback ──
 ruffae status --repo ./app                    # Ver tareas
-ruffae rollback abc123 --to planning-1        # Volver atrás
+ruffae rollback abc123 --to planning-1        # Go back
 
 # ── Audit ──
-ruffae audit abc123 --repo ./app              # Ver qué hizo
+ruffae audit abc123 --repo ./app              # See what it did
 ruffae audit abc123 --cost                    # Estimar coste
 
 # ── Modo servidor ──
@@ -638,25 +638,25 @@ curl -X POST localhost:8000/ap/v1/agent/tasks \
   -d '{"input": "Fix the auth bug"}'
 
 # ── Dry run ──
-ruffae run "Task" --dry-run --repo ./app      # Ver qué haría sin ejecutar
+ruffae run "Task" --dry-run --repo ./app      # See what it would do without executing
 ```
 
 ---
 
-## 10. CRITERIOS DE ÉXITO
+## 10. SUCCESS CRITERIA
 
 ```
-SUCCESS-1:  ruffae run con AIDER completa sin intervención
-SUCCESS-2:  ruffae run con CLAUDE CODE completa sin intervención
-SUCCESS-3:  ruffae run con PI AGENT completa sin intervención
-SUCCESS-4:  Guardrails bloquean modificación de .env (probado)
+SUCCESS-1:  ruffae run with AIDER completes without intervention
+SUCCESS-2:  ruffae run with CLAUDE CODE completes without intervention
+SUCCESS-3:  ruffae run with PI AGENT completes without intervention
+SUCCESS-4:  Guardrails block modification of .env (tested)
 SUCCESS-5:  Quality gate de lint falla → agente reintenta
 SUCCESS-6:  Snapshot permite rollback a fase anterior
-SUCCESS-7:  Audit trail registra cada acción (JSONL)
+SUCCESS-7:  Audit trail records each action (JSONL)
 SUCCESS-8:  Agent Protocol server responde correctamente
 SUCCESS-9:  Nuevo agente = 1 archivo, 0 cambios en domain/
 SUCCESS-10: domain/ tiene 0 imports de agents/, memory/, guardrails/
-SUCCESS-11: < 1,800 líneas totales
+SUCCESS-11: < 1,800 lines totales
 SUCCESS-12: Coverage > 80% en domain/
 ```
 
@@ -664,19 +664,19 @@ SUCCESS-12: Coverage > 80% en domain/
 
 ## 11. VENTAJA COMPETITIVA
 
-¿Por qué usar Ruffae en vez de correr un agente directamente?
+Why use Ruffae instead of running an agent directly?
 
 | Sin Ruffae | Con Ruffae |
 |-----------|-----------|
-| Agente toca archivos que no debe | Guardrails bloquean automáticamente |
+| Agent touches files it should not | Guardrails block automatically |
 | Agente se atasca repitiendo errores | Stagnation detecta y resetea contexto |
-| Solo "tests pass" como verificación | Tests + lint + typecheck + diff sanity |
-| Si falla, empiezas de cero | Snapshots → rollback instantáneo |
-| No sabes qué pasó | Audit trail completo |
+| Only "tests pass" as verification | Tests + lint + typecheck + diff sanity |
+| If it fails, you start from scratch | Snapshots → instant rollback |
+| You do not know what happened | Complete audit trail |
 | Un solo agente | El mejor agente para cada fase |
 | Secuencial siempre | Paralelo cuando es posible |
 | Solo CLI | CLI + Agent Protocol API |
 | No hay memoria | Memoria opcional (file o MCP) |
 | Repositorio expuesto | Worktree aislado (repo intacto) |
 
-**Ruffae convierte cualquier agente de coding en un agente autónomo seguro, verificable y reproducible.**
+**Ruffae turns any coding agent into a safe, verifiable, and reproducible autonomous agent.**
