@@ -178,9 +178,9 @@
 ### SPEC-MCP-01: MCP Memory HTTP (`infra/adapters/mcp/memory_http.py`)
 
 - [x] MH1.1 Implements MemoryProtocol
-- [x] MH1.2 recall → engram_1mcp_recall
-- [x] MH1.3 store → automem_1mcp_memorize
-- [x] MH1.4 ingest → automem_1mcp_ingest_event
+- [x] MH1.2 recall → L3_decisions_1mcp_recall
+- [x] MH1.3 store → L0_capture_1mcp_memorize
+- [x] MH1.4 ingest → L0_capture_1mcp_ingest_event
 - [x] MH1.5 Timeout: 30s recall, 10s store/ingest
 - [x] MH1.6 Graceful fallback if gateway unreachable (returns empty)
 - [x] MH1.7 < 100 lines (63 lines)
@@ -303,7 +303,7 @@
 - --json on ALL 14 commands (before/after subcommand) ✅
 
 **Deferred to later releases:**
-- Additional MCP adapters (engram) — Sprint 4
+- Additional MCP adapters (L3_decisions) — Sprint 4
 - Gateway/ProtocolFactory — Sprint 2 (3-tier ProtocolFactory done)
 - Enterprise (federation, governance, observability, A2A, Jart-OS) — Releases 5-6
 - TUI, Web Server, Plugins, Integrations — Releases 2-4

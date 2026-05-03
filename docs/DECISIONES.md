@@ -16,7 +16,7 @@
 - Auto-detection: if MCP responds → mcp, else → local
 - Flag --force-local to force local mode
 - DO NOT replicate: patterns, consolidation (dream cycle), L0-L4 layers
-- DO replicate: memory (store/recall), thinking, engram (decisions), planning, conversations, vault
+- DO replicate: memory (store/recall), thinking, L3_decisions (decisions), planning, conversations, vault
 - Flat memory (single layer) sufficient for short sessions
 
 ## DEC-003: Nomenclature (anti-typo rules)

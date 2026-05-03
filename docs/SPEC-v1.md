@@ -594,17 +594,17 @@ POST /mcp
     "jsonrpc": "2.0",
     "method": "tools/call",
     "params": {
-        "name": "engram_1mcp_recall",  # {server}_1mcp_{tool}
+        "name": "L3_decisions_1mcp_recall",  # {server}_1mcp_{tool}
         "arguments": { "query": "...", "max_tokens": 4000 }
     },
     "id": 1
 }
 
 Tools mapeadas:
-  recall     → engram_1mcp_recall / automem_1mcp_memorize
-  store      → automem_1mcp_memorize
-  ingest     → automem_1mcp_ingest_event
-  consolidate → autodream_1mcp_consolidate
+  recall     → L3_decisions_1mcp_recall / L0_capture_1mcp_memorize
+  store      → L0_capture_1mcp_memorize
+  ingest     → L0_capture_1mcp_ingest_event
+  consolidate → L0_to_L4_consolidation_1mcp_consolidate
 ```
 
 #### Criterios de aceptación
@@ -1013,7 +1013,7 @@ src/workspace/          # Todo el directorio
 docs/FUSION-DESIGN-v2.md     # Diseño de fusión (referencia)
 docs/FUSION-SPEC-v3.md       # Specs de fusión (code maps, model packs, etc.)
 docs/VISION-PLATAFORMA-AGENTICA.md  # Visión general (Ralph ya no está ahí)
-data/memory/engram/model-packs/     # Ruffae los consulta via MCP
+data/memory/L3_decisions/model-packs/     # Ruffae los consulta via MCP
 ```
 
 ### Actualizaciones al Memory Server

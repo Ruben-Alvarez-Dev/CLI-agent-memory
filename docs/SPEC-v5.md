@@ -119,7 +119,7 @@ src/CLI_agent_memory/
 │   │   │   ├── memory_http.py   # MCPMemoryAdapter (HTTP JSON-RPC)
 │   │   │   ├── memory_stdio.py  # MCPStdioAdapter (subprocess stdio)
 │   │   │   ├── thinking_mcp.py  # MCPThinkingAdapter
-│   │   │   ├── engram_mcp.py    # MCPEngramAdapter
+│   │   │   ├── L3_decisions_mcp.py    # MCPEngramAdapter
 │   │   │   └── vault_mcp.py     # MCPVaultAdapter
 │   │   │
 │   │   ├── a2a/                 # A2A protocol (Release 5)
@@ -138,7 +138,7 @@ src/CLI_agent_memory/
 │   │   │   ├── __init__.py
 │   │   │   ├── memory_sqlite.py # LocalMemoryAdapter (SQLite + FTS5)
 │   │   │   ├── thinking_local.py
-│   │   │   ├── engram_sqlite.py
+│   │   │   ├── L3_decisions_sqlite.py
 │   │   │   ├── planning_local.py
 │   │   │   ├── vault_local.py   # Obsidian vault
 │   │   │   ├── conversation_local.py
@@ -486,7 +486,7 @@ class ThinkingProtocol(Protocol):
 
 @runtime_checkable
 class EngramProtocol(Protocol):
-    """Abstraction of engram (decisions + entities) backend."""
+    """Abstraction of L3_decisions (decisions + entities) backend."""
     async def save_decision(self, title: str, body: str, tags: list[str] = []) -> str: ...
     async def search_decisions(self, query: str) -> list[Decision]: ...
     async def save_entity(self, name: str, kind: str, data: dict) -> str: ...
@@ -756,11 +756,11 @@ EXIT_SIGTERM = 143  # 128 + 15
 **Dependencies**: httpx, `domain/protocols.py`
 
 Protocol via HTTP JSON-RPC to MCP-agent-memory gateway (:3050):
-- `recall` → `engram_1mcp_recall`
-- `store` → `automem_1mcp_memorize`
-- `ingest` → `automem_1mcp_ingest_event`
-- `search` → `engram_1mcp_search`
-- `list` → `engram_1mcp_list`
+- `recall` → `L3_decisions_1mcp_recall`
+- `store` → `L0_capture_1mcp_memorize`
+- `ingest` → `L0_capture_1mcp_ingest_event`
+- `search` → `L3_decisions_1mcp_search`
+- `list` → `L3_decisions_1mcp_list`
 
 Timeouts: 30s recall, 10s store/ingest.
 Fallback: graceful (returns empty results, no crash).
@@ -769,15 +769,15 @@ Fallback: graceful (returns empty results, no crash).
 
 #### SPEC-MCP-02: MCP Thinking Adapter
 **File**: `infra/adapters/mcp/thinking_mcp.py`
-→ `sequential_thinking_1mcp_*`
+→ `Lx_reasoning_*`
 
 #### SPEC-MCP-03: MCP Engram Adapter
-**File**: `infra/adapters/mcp/engram_mcp.py`
-→ `engram_1mcp_save_decision`, `engram_1mcp_search_decisions`
+**File**: `infra/adapters/mcp/L3_decisions_mcp.py`
+→ `L3_decisions_1mcp_save_decision`, `L3_decisions_1mcp_search_decisions`
 
 #### SPEC-MCP-04: MCP Vault Adapter
 **File**: `infra/adapters/mcp/vault_mcp.py`
-→ `engram_1mcp_memory_vault_write`
+→ `L3_decisions_1mcp_memory_vault_write`
 
 #### SPEC-MCP-05: MCP Stdio Adapter
 **File**: `infra/adapters/mcp/memory_stdio.py`
@@ -794,7 +794,7 @@ SQLite + FTS5 for recall/store/search/list.
 Recursive loop with LLM → SQLite thinking_sessions + thinking_steps.
 
 #### SPEC-LOC-03: Local Engram Adapter
-**File**: `infra/adapters/local/engram_sqlite.py`
+**File**: `infra/adapters/local/L3_decisions_sqlite.py`
 SQLite decisions + FTS5 search.
 
 #### SPEC-LOC-04: Local Planning Adapter
@@ -971,7 +971,7 @@ tests/domain/
 tests/infra/mcp/
 ├── test_memory_http.py    # 5 tests (mock HTTP)
 ├── test_thinking_mcp.py   # 3 tests
-└── test_engram_mcp.py     # 3 tests
+└── test_L3_decisions_mcp.py     # 3 tests
 ```
 
 ### SPEC-T-03: Local Adapter Tests
@@ -979,7 +979,7 @@ tests/infra/mcp/
 tests/infra/local/
 ├── test_memory_sqlite.py      # 5 tests (temp DB)
 ├── test_thinking_local.py     # 3 tests
-├── test_engram_sqlite.py      # 3 tests
+├── test_L3_decisions_sqlite.py      # 3 tests
 └── test_vault_local.py        # 3 tests (temp dir)
 ```
 
@@ -1110,7 +1110,7 @@ Sprint 2: Loop core
 Sprint 3: Local infra
   [12] LOC-01 memory_sqlite   → T-03 test_memory_sqlite
   [13] LOC-02 thinking_local  → T-03 test_thinking_local
-  [14] LOC-03 engram_sqlite   → T-03 test_engram_sqlite
+  [14] LOC-03 L3_decisions_sqlite   → T-03 test_L3_decisions_sqlite
   [15] LOC-04 planning_local  → (uses LLM, manual test)
   [16] LOC-05 vault_local     → T-03 test_vault_local
   [17] LOC-06 conversation_local → T-03 (if time)
@@ -1123,7 +1123,7 @@ Sprint 3: Local infra
 Sprint 4: MCP infra + CLI
   [23] MCP-01 memory_http     → T-02 test_memory_http
   [24] MCP-02 thinking_mcp    → T-02 test_thinking_mcp
-  [25] MCP-03 engram_mcp      → T-02 test_engram_mcp
+  [25] MCP-03 L3_decisions_mcp      → T-02 test_L3_decisions_mcp
   [26] MCP-04 vault_mcp       → (similar to MCP-01)
   [27] MCP-05 memory_stdio    → (manual test)
   [28] CLI-01 cli.py          → T-06 test_cli
