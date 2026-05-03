@@ -14,7 +14,7 @@ class MCPThinkingStdioAdapter(ThinkingProtocol):
     async def think(self, problem: str, depth: int = 5) -> ThinkingResult:
         try:
             mgr = await get_shared_manager()
-            data = await mgr.tool("sequential_thinking_sequential_thinking", {
+            data = await mgr.tool("Lx_reasoning_sequential_thinking", {
                 "problem": problem, "context": "", "max_steps": depth,
             })
             thoughts = data.get("thoughts", [])
@@ -32,7 +32,7 @@ class MCPThinkingStdioAdapter(ThinkingProtocol):
     async def get_session(self, session_id: str) -> ThinkingResult | None:
         try:
             mgr = await get_shared_manager()
-            data = await mgr.tool("sequential_thinking_get_thinking_session", {"session_id": session_id})
+            data = await mgr.tool("Lx_reasoning_get_thinking_session", {"session_id": session_id})
             thoughts = data.get("thoughts", [])
             return ThinkingResult(
                 session_id=session_id, problem=data.get("problem", ""),

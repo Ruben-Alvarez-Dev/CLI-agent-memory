@@ -9,12 +9,12 @@
  *   OpenCode hooks → fetch() → http://127.0.0.1:8890/api/* → MCP-agent-memory
  *
  * What this replaces:
- *   - engram.ts's chat.message auto-capture → now goes to MCP ingest-event
- *   - engram.ts's tool.execute.after counting → now goes to MCP ingest-event
- *   - engram.ts's MEMORY_INSTRUCTIONS → replaced by compact BACKPACK_RULES
- *   - Manual "call automem_heartbeat every turn" → automatic via chat.message
+ *   - L3_decisions (formerly L3_decisions)'s chat.message auto-capture → now goes to MCP ingest-event
+ *   - L3_decisions (formerly L3_decisions)'s tool.execute.after counting → now goes to MCP ingest-event
+ *   - L3_decisions (formerly L3_decisions)'s MEMORY_INSTRUCTIONS → replaced by compact BACKPACK_RULES
+ *   - Manual "call L0_capture_heartbeat every turn" → automatic via chat.message
  *
- * What this keeps from engram.ts:
+ * What this keeps from L3_decisions (formerly L3_decisions):
  *   - Engram Go binary lifecycle (mem_save, mem_search, etc.)
  *   - Session registration in Engram Go
  *   - Compaction context injection from Engram Go
@@ -27,12 +27,12 @@ import type { Plugin } from "@opencode-ai/plugin"
 const BACKPACK_API_URL = process.env.AUTOMEM_API_URL ?? "http://127.0.0.1:8890"
 const ENGRAM_PORT = parseInt(process.env.ENGRAM_PORT ?? "7437")
 const ENGRAM_URL = `http://127.0.0.1:${ENGRAM_PORT}`
-const ENGRAM_BIN = process.env.ENGRAM_BIN ?? Bun.which("engram") ?? "/opt/homebrew/bin/engram"
+const ENGRAM_BIN = process.env.ENGRAM_BIN ?? Bun.which("L3_decisions") ?? "/opt/homebrew/bin/L3_decisions"
 
 // Memory infrastructure tools — skip these in tool.execute.after to avoid loops
 const MEMORY_TOOL_PREFIXES = new Set([
-  "automem_", "autodream_", "engram_", "vk_cache_",
-  "conversation_store_", "mem0_", "sequential_thinking_",
+  "L0_capture_", "L0_to_L4_consolidation_", "L3_decisions_", "L5_routing_",
+  "L2_conversations_", "L3_facts_", "Lx_reasoning_",
 ])
 const ENGRAM_GO_TOOLS = new Set([
   "mem_search", "mem_save", "mem_update", "mem_delete",
@@ -80,9 +80,9 @@ async function backpackPostAwaited(path: string, body: Record<string, unknown>):
 }
 
 /**
- * Engram Go HTTP client (same as original engram.ts).
+ * Engram Go HTTP client (same as original L3_decisions (formerly L3_decisions)).
  */
-async function engramFetch(path: string, opts: { method?: string; body?: any } = {}): Promise<any> {
+async function L3_decisionsFetch(path: string, opts: { method?: string; body?: any } = {}): Promise<any> {
   try {
     const res = await fetch(`${ENGRAM_URL}${path}`, {
       method: opts.method ?? "GET",
@@ -165,7 +165,7 @@ const contextAttempted = new Set<string>()  // session attempted context fetch (
 const CONTEXT_REQUIRED_TOOLS = new Set(["write", "edit"])
 
 /**
- * Fetch context from vk-cache for the user's query.
+ * Fetch context from L5_routing for the user's query.
  * Returns injection_text or empty string on failure.
  * Updates lastContextInjection for system.transform to inject.
  */
@@ -227,16 +227,16 @@ When you discover something that contradicts stored knowledge:
 ### You MUST do (requires your judgment)
 
 When making architecture/design decisions:
-→ Call automem_memorize with type="decision"
+→ Call L0_capture_memorize with type="decision"
 
 When fixing a non-obvious bug:
-→ Call automem_memorize with type="bugfix"
+→ Call L0_capture_memorize with type="bugfix"
 
 When discovering something surprising about the codebase:
-→ Call automem_memorize with type="discovery"
+→ Call L0_capture_memorize with type="discovery"
 
 When the user asks to recall past work ("remember", "recall", "acordate", "qué hicimos"):
-→ Call vk_cache_request_context first, then automem_memorize if needed
+→ Call vk_cache_request_context first, then L0_capture_memorize if needed
 
 Before ending a session or saying "done"/"listo":
 → Call conversation_store_save_conversation with a session summary
@@ -261,7 +261,7 @@ export const BackpackOrchestrator: Plugin = async (ctx) => {
   const subAgentSessions = new Set<string>()
   const knownSessions = new Set<string>()
 
-  // Ensure Engram Go server is running (same as original engram.ts)
+  // Ensure Engram Go server is running (same as original L3_decisions (formerly L3_decisions))
   const running = await isEngramRunning()
   if (!running) {
     try {
@@ -272,9 +272,9 @@ export const BackpackOrchestrator: Plugin = async (ctx) => {
     } catch {}
   }
 
-  // Auto-import .engram/manifest.json chunks (same as original engram.ts)
+  // Auto-import .L3_decisions/manifest.json chunks (same as original L3_decisions (formerly L3_decisions))
   try {
-    const manifestFile = `${ctx.directory}/.engram/manifest.json`
+    const manifestFile = `${ctx.directory}/.L3_decisions/manifest.json`
     const file = Bun.file(manifestFile)
     if (await file.exists()) {
       Bun.spawn([ENGRAM_BIN, "sync", "--import"], {
@@ -291,7 +291,7 @@ export const BackpackOrchestrator: Plugin = async (ctx) => {
     if (!sessionId || knownSessions.has(sessionId)) return
     if (subAgentSessions.has(sessionId)) return
     knownSessions.add(sessionId)
-    await engramFetch("/sessions", {
+    await L3_decisionsFetch("/sessions", {
       method: "POST",
       body: { id: sessionId, project, directory: ctx.directory },
     })
@@ -386,8 +386,8 @@ export const BackpackOrchestrator: Plugin = async (ctx) => {
           turn_count: 1,
         })
 
-        // Also capture in Engram Go (same as original engram.ts)
-        engramFetch("/prompts", {
+        // Also capture in Engram Go (same as original L3_decisions (formerly L3_decisions))
+        L3_decisionsFetch("/prompts", {
           method: "POST",
           body: {
             session_id: input.sessionID,
@@ -516,8 +516,8 @@ export const BackpackOrchestrator: Plugin = async (ctx) => {
       // 2. Trigger consolidation (non-forced — respects thresholds)
       backpackPostAwaited("/api/consolidate", { force: false })
 
-      // 3. Inject context from Engram Go (same as original engram.ts)
-      const data = await engramFetch(`/context?project=${encodeURIComponent(project)}`)
+      // 3. Inject context from Engram Go (same as original L3_decisions (formerly L3_decisions))
+      const data = await L3_decisionsFetch(`/context?project=${encodeURIComponent(project)}`)
       if (data?.context) {
         output.context.push(data.context)
       }

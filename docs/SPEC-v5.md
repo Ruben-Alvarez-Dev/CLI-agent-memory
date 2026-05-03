@@ -480,7 +480,7 @@ class MemoryProtocol(Protocol):
 
 @runtime_checkable
 class ThinkingProtocol(Protocol):
-    """Abstraction of sequential thinking backend."""
+    """Abstraction of Lx_reasoning backend."""
     async def think(self, problem: str, depth: int = 5) -> ThinkingResult: ...
     async def get_session(self, session_id: str) -> ThinkingResult | None: ...
 

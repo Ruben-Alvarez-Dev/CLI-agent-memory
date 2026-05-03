@@ -40,8 +40,8 @@ All adapters talk to the same HTTP sidecar endpoints:
 | Endpoint | Purpose | Called by |
 |----------|---------|-----------|
 | `POST /api/ingest-event` | Capture raw events | Every adapter |
-| `POST /api/heartbeat` | Track turns (automem) | Every adapter |
-| `POST /api/heartbeat-dream` | Track turns (autodream) | Every adapter |
+| `POST /api/heartbeat` | Track turns (L0_capture) | Every adapter |
+| `POST /api/heartbeat-dream` | Track turns (L0_to_L4_consolidation) | Every adapter |
 | `POST /api/request-context` | Fetch relevant context | Every adapter |
 | `POST /api/save-conversation` | Save before compaction | Adapters with compaction |
 | `POST /api/consolidate` | Trigger consolidation | Adapters with compaction |

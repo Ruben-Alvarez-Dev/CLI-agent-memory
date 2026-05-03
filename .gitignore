@@ -40,3 +40,7 @@ Thumbs.db
 # ruff
 .ruff_cache/
 .worktrees/
+.coverage
+audit_test_real.py
+print_err.py
+verify.sh

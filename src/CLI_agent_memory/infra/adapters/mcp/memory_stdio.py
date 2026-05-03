@@ -14,7 +14,7 @@ class MCPMemoryStdioAdapter(MemoryProtocol):
     async def recall(self, query: str, max_tokens: int = 4000) -> ContextPack:
         try:
             mgr = await get_shared_manager()
-            data = await mgr.tool("vk_cache_request_context", {
+            data = await mgr.tool("L5_routing_request_context", {
                 "query": query, "agent_id": "cli-agent-memory",
                 "intent": "answer", "token_budget": max_tokens,
             })
@@ -44,7 +44,7 @@ class MCPMemoryStdioAdapter(MemoryProtocol):
     async def ingest(self, event_type: str, content: str) -> None:
         try:
             mgr = await get_shared_manager()
-            await mgr.tool("automem_ingest_event", {
+            await mgr.tool("L0_capture_ingest_event", {
                 "event_type": event_type, "source": "cli-agent-memory",
                 "content": content, "actor_id": "cli-agent-memory",
             })
