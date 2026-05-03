@@ -74,7 +74,7 @@ def cmd_think(args: argparse.Namespace, config: AgentMemoryConfig) -> int:
     from CLI_agent_memory.infra.adapters.protocol_factory import ProtocolFactory
     factory = ProtocolFactory(config)
     thinking = factory.create_thinking()
-    result = asyncio.run(thinking.think(args.problem, max_steps=args.steps))
+    result = asyncio.run(thinking.think(args.problem, depth=args.steps))
     if hasattr(result, "steps") and result.steps:
         for step in result.steps:
             print(f"  Step {step.step_number}: {step.thought[:120]}")
