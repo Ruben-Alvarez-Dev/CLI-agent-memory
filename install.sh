@@ -1,78 +1,128 @@
-#!/bin/bash
-# CLI-agent-memory — Installer (Thin Wrapper)
+#!/usr/bin/env bash
+# Thin wrapper installer for CLI-agent-memory using CLI-agent-installer v2.0
 #
-# Usage (one-liner, no clone needed):
-#   curl -fsSL https://raw.githubusercontent.com/Ruben-Alvarez-Dev/CLI-agent-memory/main/install.sh | bash
-#   curl -fsSL ... | bash -s -- ~/my-custom-path
+# This script:
+# 1. Auto-bootstraps source code from GitHub if not present
+# 2. Delegates installation to CLI-agent-installer
 #
-# Or from inside the cloned repo:
-#   bash install.sh
-#   bash install.sh ~/my-custom-path
-#
-# This installer delegates all heavy lifting to modular scripts in install/
-set -euo pipefail
+# Usage:
+#   bash install.sh                    # Install or update
+#   bash install.sh --dry-run          # Preview changes
+#   bash install.sh --verbose          # Verbose output
+#   bash install.sh --no-checklist     # Run without checklist (legacy mode)
 
-# ── Configuration ─────────────────────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
-INSTALL_DIR="${1:-$HOME/CLI-agent-memory}"
-INSTALL_SCRIPT="${SCRIPT_DIR}/install/update.sh"
+set -e
 
-# ── Auto-bootstrap: download source via tarball if not inside repo ─────────────
-if [ ! -f "$SCRIPT_DIR/src/CLI_agent_memory/cli.py" ]; then
-    REPO_URL="https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory"
-    echo "⬇  Downloading CLI-agent-memory source..."
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-    TMPDIR=$(mktemp -d -t cli-mem.XXXXXX)
-    cleanup() { rm -rf "$TMPDIR"; }
-    trap cleanup EXIT
+# Functions
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
-    if ! curl -fsSL "${REPO_URL}/archive/refs/heads/main.tar.gz" -o "$TMPDIR/src.tar.gz"; then
-        echo "  ✗ Download failed. Check your internet connection."
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_NAME="CLI-agent-memory"
+REPO="Ruben-Alvarez-Dev/CLI-agent-memory"
+
+# Check if CLI-agent-installer is installed
+if ! command -v installer &> /dev/null; then
+    log_info "CLI-agent-installer not found. Installing..."
+
+    # Create temp directory
+    TMPDIR=$(mktemp -d)
+    cd "$TMPDIR"
+
+    # Clone and install
+    if ! git clone https://github.com/Ruben-Alvarez-Dev/CLI-agent-installer.git; then
+        log_error "Failed to clone CLI-agent-installer"
         exit 1
     fi
 
-    mkdir -p "$TMPDIR/repo"
-    tar -xzf "$TMPDIR/src.tar.gz" -C "$TMPDIR/repo" --strip-components=1
-    rm -rf "$TMPDIR/repo/.git"
-    echo "  ✓ Source downloaded ($(du -sh "$TMPDIR/repo" | awk '{print $1}'))"
+    cd CLI-agent-installer
 
-    # Extract install/ dir to check for updates even before full install
-    mkdir -p "$INSTALL_DIR/install"
-    cp -a "$TMPDIR/repo/install/." "$INSTALL_DIR/install/" 2>/dev/null || mkdir -p "$INSTALL_DIR/install"
-
-    # Check for updates immediately after bootstrap
-    if bash "$INSTALL_DIR/install/version.sh" check "$INSTALL_DIR" 2>/dev/null | grep -q "UPDATE_AVAILABLE"; then
-        bash "$INSTALL_DIR/install/version.sh" check "$INSTALL_DIR"
-        echo ""
-        read -p "Update available. Continue with installation? [y/N] " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Installation cancelled."
-            exit 0
-        fi
-    fi
-
-    # Copy payload to install dir (using sync.sh for clean install)
-    if [ -f "$TMPDIR/repo/install/sync.sh" ]; then
-        bash "$TMPDIR/repo/install/sync.sh" "$TMPDIR/repo" "$INSTALL_DIR"
+    # Install with pip (try pip3 first, then pip)
+    if command -v pip3 &> /dev/null; then
+        PIP_CMD=pip3
+    elif command -v pip &> /dev/null; then
+        PIP_CMD=pip
     else
-        # Fallback if sync.sh doesn't exist in downloaded source
-        mkdir -p "$INSTALL_DIR"
-        for item in src install tests pyproject.toml README.md install.sh .python-version; do
-            [ -e "$TMPDIR/repo/$item" ] && cp -a "$TMPDIR/repo/$item" "$INSTALL_DIR/"
-        done
+        log_error "Neither pip nor pip3 found"
+        exit 1
     fi
 
-    echo "  ✓ Source installed at $INSTALL_DIR ($(du -sh "$INSTALL_DIR" | awk '{print $1}'))"
+    if ! $PIP_CMD install --break-system-packages -e .; then
+        log_error "Failed to install CLI-agent-installer"
+        exit 1
+    fi
 
-    # Now run the actual installation using update.sh script
-    exec bash "$INSTALL_DIR/install/update.sh" "$INSTALL_DIR" "$TMPDIR/repo"
+    log_success "CLI-agent-installer installed"
+    cd "$SCRIPT_DIR"
+    rm -rf "$TMPDIR"
 fi
 
-# ── Running from inside the repo: delegate to install/update.sh ──────────────
-if [ -f "$INSTALL_SCRIPT" ]; then
-    exec bash "$INSTALL_SCRIPT" "$INSTALL_DIR" "$SCRIPT_DIR"
+# Check if running from within the repo (dev mode) or standalone (user mode)
+if [ -d "$SCRIPT_DIR/.git" ]; then
+    # Dev mode: running from within the repo
+    log_info "Running in dev mode (within repo)"
+    INSTALL_DIR="$SCRIPT_DIR"
 else
-    echo "✗ Installation script not found at $INSTALL_SCRIPT"
+    # User mode: running standalone
+    log_info "Running in user mode (standalone)"
+
+    # Check if we need to bootstrap source code
+    if [ ! -f "$SCRIPT_DIR/pyproject.toml" ]; then
+        log_info "Bootstrapping source code from GitHub..."
+
+        # Create temp directory for download
+        TMPDIR=$(mktemp -d)
+        cd "$TMPDIR"
+
+        # Download tarball from main branch
+        if ! curl -fsSL "https://github.com/${REPO}/archive/refs/heads/main.tar.gz" -o main.tar.gz; then
+            log_error "Failed to download source code"
+            exit 1
+        fi
+
+        # Extract
+        if ! tar -xzf main.tar.gz; then
+            log_error "Failed to extract source code"
+            exit 1
+        fi
+
+        # Copy files
+        EXTRACTED_DIR="${REPO##*/}-main"
+        if [ -d "$EXTRACTED_DIR" ]; then
+            # Copy all files except .git
+            if ! rsync -av --exclude='.git' "$EXTRACTED_DIR/" "$SCRIPT_DIR/"; then
+                log_warn "rsync not available, using cp..."
+                cp -r "$EXTRACTED_DIR/"* "$SCRIPT_DIR/"
+            fi
+            log_success "Source code bootstrapped"
+        else
+            log_error "Failed to find extracted directory"
+            exit 1
+        fi
+
+        cd "$SCRIPT_DIR"
+        rm -rf "$TMPDIR"
+    fi
+
+    INSTALL_DIR="$SCRIPT_DIR"
+fi
+
+# Check if manifest exists
+if [ ! -f "$INSTALL_DIR/install/manifest.json" ]; then
+    log_error "install/manifest.json not found. Run 'installer init .' first"
     exit 1
 fi
+
+# Run installer
+log_info "Running CLI-agent-installer..."
+installer run "$INSTALL_DIR" "$@"

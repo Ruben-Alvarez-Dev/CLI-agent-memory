@@ -44,3 +44,8 @@ Thumbs.db
 audit_test_real.py
 print_err.py
 verify.sh
+
+# CLI-agent-installer
+checkpoints/
+logs/
+*.log
