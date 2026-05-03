@@ -1,85 +1,78 @@
 #!/bin/bash
-# CLI-agent-memory — One-liner installer
-# Usage: curl -fsSL <url>/install.sh | bash
-# Or:    bash install.sh [install_dir]
+# CLI-agent-memory — Installer (Thin Wrapper)
+#
+# Usage (one-liner, no clone needed):
+#   curl -fsSL https://raw.githubusercontent.com/Ruben-Alvarez-Dev/CLI-agent-memory/main/install.sh | bash
+#   curl -fsSL ... | bash -s -- ~/my-custom-path
+#
+# Or from inside the cloned repo:
+#   bash install.sh
+#   bash install.sh ~/my-custom-path
+#
+# This installer delegates all heavy lifting to modular scripts in install/
 set -euo pipefail
 
+# ── Configuration ─────────────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 INSTALL_DIR="${1:-$HOME/CLI-agent-memory}"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+INSTALL_SCRIPT="${SCRIPT_DIR}/install/update.sh"
 
-# ── Auto-bootstrap (curl | bash) ──
+# ── Auto-bootstrap: download source via tarball if not inside repo ─────────────
 if [ ! -f "$SCRIPT_DIR/src/CLI_agent_memory/cli.py" ]; then
     REPO_URL="https://github.com/Ruben-Alvarez-Dev/CLI-agent-memory"
+    echo "⬇  Downloading CLI-agent-memory source..."
+
     TMPDIR=$(mktemp -d -t cli-mem.XXXXXX)
-    trap 'rm -rf "$TMPDIR"' EXIT
-    echo "⬇  Downloading CLI-agent-memory..."
+    cleanup() { rm -rf "$TMPDIR"; }
+    trap cleanup EXIT
+
     if ! curl -fsSL "${REPO_URL}/archive/refs/heads/main.tar.gz" -o "$TMPDIR/src.tar.gz"; then
         echo "  ✗ Download failed. Check your internet connection."
         exit 1
     fi
+
     mkdir -p "$TMPDIR/repo"
     tar -xzf "$TMPDIR/src.tar.gz" -C "$TMPDIR/repo" --strip-components=1
-    echo "  ✓ Source downloaded"
-    exec bash "$TMPDIR/repo/install.sh" "$@"
-fi
+    rm -rf "$TMPDIR/repo/.git"
+    echo "  ✓ Source downloaded ($(du -sh "$TMPDIR/repo" | awk '{print $1}'))"
 
-echo ""
-echo "╔════════════════════════════════════════════════════╗"
-echo "║   CLI-agent-memory — Installer                    ║"
-echo "╚════════════════════════════════════════════════════╝"
-echo ""
+    # Extract install/ dir to check for updates even before full install
+    mkdir -p "$INSTALL_DIR/install"
+    cp -a "$TMPDIR/repo/install/." "$INSTALL_DIR/install/" 2>/dev/null || mkdir -p "$INSTALL_DIR/install"
 
-# ── 1. Check Python ──
-PYTHON="${PYTHON:-python3.12}"
-if ! command -v "$PYTHON" &>/dev/null; then
-    PYTHON="python3"
-    if ! command -v "$PYTHON" &>/dev/null; then
-        echo "  ✗ Python 3.12+ required. Install from https://python.org"
-        exit 1
+    # Check for updates immediately after bootstrap
+    if bash "$INSTALL_DIR/install/version.sh" check "$INSTALL_DIR" 2>/dev/null | grep -q "UPDATE_AVAILABLE"; then
+        bash "$INSTALL_DIR/install/version.sh" check "$INSTALL_DIR"
+        echo ""
+        read -p "Update available. Continue with installation? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Installation cancelled."
+            exit 0
+        fi
     fi
+
+    # Copy payload to install dir (using sync.sh for clean install)
+    if [ -f "$TMPDIR/repo/install/sync.sh" ]; then
+        bash "$TMPDIR/repo/install/sync.sh" "$TMPDIR/repo" "$INSTALL_DIR"
+    else
+        # Fallback if sync.sh doesn't exist in downloaded source
+        mkdir -p "$INSTALL_DIR"
+        for item in src install tests pyproject.toml README.md install.sh .python-version; do
+            [ -e "$TMPDIR/repo/$item" ] && cp -a "$TMPDIR/repo/$item" "$INSTALL_DIR/"
+        done
+    fi
+
+    echo "  ✓ Source installed at $INSTALL_DIR ($(du -sh "$INSTALL_DIR" | awk '{print $1}'))"
+
+    # Now run the actual installation using update.sh script
+    exec bash "$INSTALL_DIR/install/update.sh" "$INSTALL_DIR" "$TMPDIR/repo"
 fi
-PYVER=$($PYTHON -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-echo "  ✓ Python $PYVER found"
 
-# ── 2. Virtual environment ──
-echo "1/4 Creating virtual environment..."
-$PYTHON -m venv "$SCRIPT_DIR/.venv"
-source "$SCRIPT_DIR/.venv/bin/activate"
-pip install --upgrade pip -q 2>/dev/null
-echo "  ✓ venv created"
-
-# ── 3. Install package ──
-echo "2/4 Installing CLI-agent-memory..."
-pip install -e "$SCRIPT_DIR" -q 2>/dev/null
-echo "  ✓ CLI-agent-memory installed"
-
-# ── 4. Verify ──
-echo "3/4 Verifying installation..."
-if CLI-agent-memory version 2>/dev/null | grep -q "CLI-agent-memory"; then
-    echo "  ✓ CLI-agent-memory working"
+# ── Running from inside the repo: delegate to install/update.sh ──────────────
+if [ -f "$INSTALL_SCRIPT" ]; then
+    exec bash "$INSTALL_SCRIPT" "$INSTALL_DIR" "$SCRIPT_DIR"
 else
-    echo "  ⚠ CLI-agent-memory installed but version check failed"
+    echo "✗ Installation script not found at $INSTALL_SCRIPT"
+    exit 1
 fi
-
-# ── 5. Check MCP-agent-memory (optional) ──
-echo "4/4 Checking MCP-agent-memory..."
-MCP_SERVER="$HOME/MCP-servers/MCP-agent-memory/src/unified/server/main.py"
-if [ -f "$MCP_SERVER" ]; then
-    echo "  ✓ MCP-agent-memory found at $HOME/MCP-servers/MCP-agent-memory"
-    echo "    (CLI will connect to it via stdio subprocess)"
-else
-    echo "  ⚠ MCP-agent-memory not found at $MCP_SERVER"
-    echo "    Install it separately for memory features:"
-    echo "    curl -fsSL https://raw.githubusercontent.com/Ruben-Alvarez-Dev/MCP-agent-memory/main/install.sh | bash"
-fi
-
-# ── Done ──
-echo ""
-echo "╔════════════════════════════════════════════════════╗"
-echo "║   ✅ Installation complete                         ║"
-echo "╚════════════════════════════════════════════════════╝"
-echo ""
-echo "Usage:"
-echo "  CLI-agent-memory run \"your task description\" --repo ./my-project"
-echo "  CLI-agent-memory config"
-echo "  CLI-agent-memory version"

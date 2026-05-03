@@ -1,0 +1,28 @@
+{
+  "version": "1.1.0",
+  "version_source": "git_tag",
+  "repo": "Ruben-Alvarez-Dev/CLI-agent-memory",
+  "python_min": "3.12",
+  "payload": [
+    "src/**",
+    "install/**",
+    "tests/**",
+    "pyproject.toml",
+    "README.md",
+    "install.sh",
+    ".python-version"
+  ],
+  "preserve": [
+    "data/**",
+    "config/**",
+    ".venv/**",
+    "backups/**",
+    "adapters/**"
+  ],
+  "dependencies": [
+    {"name": "pydantic", "import": "pydantic", "critical": true},
+    {"name": "pydantic-settings", "import": "pydantic_settings", "critical": true},
+    {"name": "httpx", "import": "httpx", "critical": true},
+    {"name": "mcp", "import": "mcp", "critical": true}
+  ]
+}
